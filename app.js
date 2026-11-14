@@ -100,9 +100,82 @@
     formOpen: false,
     warn: "",
     instr: null, // instrument chosen with the I key; null = the preset's own instrument
+    scene: null, // scene layer chosen with the U key; null = the preset's own layer
     mood: 1, // 1 = major (bright), 0 = minor (dark): set from the data before each chord note
     keyBusy: false, // true while the sound key is playing
   };
+
+  /* ===== MIXER: one channel per sound layer, each with a spectrum tap and a mute ===== */
+  var CH = {}, LABELS = {};
+  var MIX_ORDER = ["notes", "sustain", "scene-pad", "scene-drops", "scene-hiss", "scene-custom", "drone"];
+  function chan(id, label) {
+    if (CH[id]) return CH[id];
+    var c = S.ctx, inp = c.createGain(), mute = c.createGain(), an = c.createAnalyser();
+    an.fftSize = 512; an.smoothingTimeConstant = 0.6; an.minDecibels = -90; an.maxDecibels = -25;
+    inp.connect(an);              // spectrum taps BEFORE the mute, so you can still see a muted layer
+    inp.connect(mute); mute.connect(S.master); mute.connect(S.conv);
+    CH[id] = { id: id, label: LABELS[id] || label, in: inp, mute: mute, an: an,
+               data: new Uint8Array(an.frequencyBinCount), muted: false, last: -99, row: null };
+    return CH[id];
+  }
+  function chanLabel(id, text) { LABELS[id] = text; if (CH[id]) CH[id].label = text; }
+  var BARS = 28, EDGES = null;
+  function makeEdges(n) {
+    EDGES = [1];
+    for (var i = 1; i <= BARS; i++)
+      EDGES.push(Math.min(n, Math.max(EDGES[i - 1] + 1, Math.round(Math.pow(n - 1, i / BARS)))));
+  }
+  function buildRow(c) {
+    var li = document.createElement("li"), nm = document.createElement("span"),
+        cv = document.createElement("canvas"), bt = document.createElement("button");
+    li.className = "mixrow"; li.style.order = Math.max(0, MIX_ORDER.indexOf(c.id));
+    nm.className = "mixname";
+    cv.className = "mixspec"; cv.width = 240; cv.height = 32; cv.setAttribute("aria-hidden", "true");
+    bt.type = "button"; bt.className = "btn sm mixmute"; bt.setAttribute("aria-pressed", "false");
+    bt.addEventListener("click", function () {
+      c.muted = !c.muted;
+      c.mute.gain.setTargetAtTime(c.muted ? 0 : 1, S.ctx.currentTime, 0.03);
+      say(c.label + (c.muted ? " muted." : " unmuted."), true);
+    });
+    li.appendChild(nm); li.appendChild(cv); li.appendChild(bt);
+    $("mixList").appendChild(li);
+    c.row = { el: li, name: nm, cv: cv, g: cv.getContext("2d"), btn: bt };
+  }
+  function mixLoop() {
+    requestAnimationFrame(mixLoop);
+    if (!S.ctx || !document.body.classList.contains("playing")) return;
+    var now = performance.now(), any = false,
+        col = getComputedStyle(document.documentElement).getPropertyValue("--pulse").trim() || "#ffd60a";
+    Object.keys(CH).forEach(function (id) {
+      var c = CH[id], i, mx = 0;
+      c.an.getByteFrequencyData(c.data);
+      if (!EDGES) makeEdges(c.data.length);
+      for (i = 0; i < c.data.length; i++) if (c.data[i] > mx) mx = c.data[i];
+      if (mx > 8) c.last = now;
+      var show = c.muted || now - c.last < 1500;
+      if (show && !c.row) buildRow(c);
+      if (!c.row) return;
+      var r = c.row;
+      r.el.hidden = !show;
+      if (!show) return;
+      any = true;
+      if (r.name.textContent !== c.label) r.name.textContent = c.label;
+      r.el.classList.toggle("muted", c.muted);
+      r.btn.textContent = c.muted ? "Unmute" : "Mute";
+      r.btn.setAttribute("aria-pressed", c.muted ? "true" : "false");
+      r.btn.setAttribute("aria-label", (c.muted ? "Unmute " : "Mute ") + c.label);
+      var g = r.g, W = r.cv.width, H = r.cv.height, bw = W / BARS;
+      g.clearRect(0, 0, W, H);
+      g.fillStyle = c.muted ? "#777" : col;
+      for (var b = 0; b < BARS; b++) {
+        var m = 0;
+        for (i = EDGES[b]; i < Math.max(EDGES[b] + 1, EDGES[b + 1]); i++) if (c.data[i] > m) m = c.data[i];
+        var h = Math.max(1, (m / 255) * H);
+        g.fillRect(b * bw + 1, H - h, bw - 2, h);
+      }
+    });
+    $("mixEmpty").hidden = any;
+  }
 
   /* ===== REGION 2: HELPERS ===== */
   var duckT = null;
@@ -188,6 +261,7 @@
   }
   /* Which scene layer a legend uses: its own scene, then byType in scene-layers.js. */
   function sceneOf(L) {
+    if (S.scene) return S.scene; // the U key overrides every preset and legend
     var SL = window.SCENE_LAYERS || {},
       by = SL.byType || {};
     return (
@@ -647,6 +721,8 @@
         reverb: S.conv,
         rows: C.grid.rows,
         voice: voice,
+        channel: function (id, label) { return chan(id, label).in; },
+        label: chanLabel,
       });
     var dro = ctx.createOscillator(),
       dg = ctx.createGain();
@@ -654,7 +730,7 @@
     dro.frequency.value = midiToHz(36);
     dg.gain.value = 0;
     dro.connect(dg);
-    dg.connect(S.sceneBus);
+    dg.connect(chan("drone", "Planet drone").in);
     dro.start();
     S.drone = { o: dro, g: dg };
 
@@ -674,7 +750,7 @@
     po2.connect(pf);
     pf.connect(pg);
     pg.connect(pp);
-    pp.connect(S.sceneBus);
+    pp.connect(chan("sustain", "Sustained voice").in);
     po.start();
     po2.start();
     S.pad = { o: po, o2: po2, f: pf, g: pg, p: pp };
@@ -688,8 +764,7 @@
       }, 250);
     }
     S.bus = S.ctx.createGain();
-    S.bus.connect(S.master);
-    S.bus.connect(S.conv);
+    S.bus.connect(chan("notes", "Notes").in);
   }
   function envelope(g, t, peak, dur) {
     g.gain.setValueAtTime(0.0001, t);
@@ -2236,6 +2311,8 @@
     stop();
     S.instr = null; // each dataset starts with its own instrument again
     refreshInstrument();
+    S.scene = null; // each dataset starts with its own scene layer again
+    refreshScene();
     applyPreset(i);
     S.loaded = false;
     $("play").disabled = true;
@@ -2474,6 +2551,7 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     var cur = currentInstr(),
       nm = $("instName"),
       cn = $("chordName");
+    chanLabel("notes", "Notes: " + (INSTR_LABEL[cur] || cur));
     if (cn && cur !== "guitar") cn.textContent = "";
     document.querySelectorAll("#instBar .inst").forEach(function (b) {
       var on = b.dataset.k === cur;
@@ -2545,6 +2623,86 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
       bar.appendChild(b);
     });
     refreshInstrument();
+  }
+
+  /* ===== REGION 10c: SCENE LAYER SWITCHER =====
+     Press U (or click a button) to change the scene layer. null = the preset's own layer. */
+  function sceneList() {
+    var SL = window.SCENE_LAYERS || {};
+    return [null, "none"].concat(Object.keys(SL.layers || {}));
+  }
+  function sceneLabel(k) {
+    if (k === null) return "Preset's own";
+    if (k === "none") return "None";
+    return k.replace(/([A-Z])/g, " $1").replace(/^./, function (c) {
+      return c.toUpperCase();
+    });
+  }
+  function refreshScene() {
+    var nm = $("sceneName");
+    document.querySelectorAll("#sceneBar .inst").forEach(function (b) {
+      var on = b.dataset.k === (S.scene === null ? "__own" : S.scene);
+      b.classList.toggle("on", on);
+      b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    if (nm)
+      nm.textContent =
+        "Scene layer: " + sceneLabel(S.scene) + ". Press U for the next one, Shift and U for the previous.";
+  }
+  function setScene(k) {
+    initAudio();
+    S.scene = k;
+    refreshScene();
+    var list = sceneList(),
+      kind = k === null ? sceneOf(S.legends[0]) : k,
+      desc =
+        k === "none"
+          ? "No nature texture, notes only."
+          : (window.SceneLayers && SceneLayers.describe(kind)) || "";
+    say(
+      "Scene layer: " + sceneLabel(k) + ", " + (list.indexOf(k) + 1) + " of " + list.length + ". " + desc,
+    );
+    /* paused: play the layer for a moment so you can hear it. Playing: the next tick uses it. */
+    if (!S.timer && S.ctx && window.SceneLayers && SceneLayers.has(kind)) {
+      scene(kind, { norm: 0.6, value: 0, type: "default" }, 0, SPOT_MS, null, 0);
+      setTimeout(function () {
+        if (!S.timer) silenceScene();
+      }, 1800);
+    } else if (!S.timer && S.ctx) silenceScene();
+  }
+  function nextScene() {
+    if (S.view !== "play") return;
+    var l = sceneList();
+    setScene(l[(l.indexOf(S.scene) + 1) % l.length]);
+  }
+  function prevScene() {
+    if (S.view !== "play") return;
+    var l = sceneList(),
+      i = l.indexOf(S.scene);
+    setScene(l[(i <= 0 ? l.length : i) - 1]);
+  }
+  window.spotNextScene = nextScene;
+  window.spotPrevScene = prevScene;
+  function buildSceneBar() {
+    var bar = $("sceneBar");
+    if (!bar) return;
+    sceneList().forEach(function (k) {
+      var b = document.createElement("button");
+      b.type = "button";
+      b.className = "inst";
+      b.dataset.k = k === null ? "__own" : k;
+      b.tabIndex = -1; // keyboard users have the U key
+      b.setAttribute("aria-label", sceneLabel(k));
+      b.innerHTML = "<span>" + sceneLabel(k) + "</span>";
+      b.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+      });
+      b.addEventListener("click", function () {
+        setScene(k);
+      });
+      bar.appendChild(b);
+    });
+    refreshScene();
   }
 
   /* ===== REGION 11: PAGE CONTROLS ===== */
@@ -2619,7 +2777,9 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
       moveSpot();
     });
 
+    mixLoop();
     buildInstrumentBar();
+    buildSceneBar();
     buildFlow();
     showItem(0, true);
 

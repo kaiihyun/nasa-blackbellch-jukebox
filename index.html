@@ -182,6 +182,13 @@
           <span>High</span>
         </div>
         <p id="instName" class="mono"></p>
+        <div
+          id="sceneBar"
+          class="instbar"
+          role="group"
+          aria-label="Scene layer. Press U for the next one, Shift and U for the previous."
+        ></div>
+        <p id="sceneName" class="mono"></p>
         <p id="chordName" class="chord" aria-hidden="true"></p>
         <figure class="vidfig">
           <figcaption>Source video</figcaption>
@@ -192,6 +199,11 @@
             <div id="vcol" class="ov"></div>
           </div>
         </figure>
+        <section id="mixer" class="mixer card" aria-label="Sounds playing now">
+          <h3>Playing now</h3>
+          <ul id="mixList" class="mixlist"></ul>
+          <p id="mixEmpty" class="mono">Nothing is sounding right now.</p>
+        </section>
         <section id="info-now" class="readout">
           <h3 class="sr">Now</h3>
           <p id="now">Nothing yet</p>
@@ -399,6 +411,10 @@
           <tr>
             <td><kbd>I</kbd> / <kbd>Shift</kbd>+<kbd>I</kbd></td>
             <td>Next or previous instrument (plays the middle note)</td>
+          </tr>
+          <tr>
+            <td><kbd>U</kbd> / <kbd>Shift</kbd>+<kbd>U</kbd></td>
+            <td>Next or previous scene layer (previews it briefly when paused)</td>
           </tr>
           <tr>
             <td><kbd>F</kbd></td>

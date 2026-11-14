@@ -61,6 +61,7 @@
     else if (lk === "v") { cycle("target"); }
     else if (lk === "n") { if ($("target").value === "spot") { var p = $("place"); p.selectedIndex = (p.selectedIndex + (e.shiftKey ? -1 : 1) + p.options.length - 1) % (p.options.length - 1); p.dispatchEvent(new Event("change")); } }
     else if (lk === "i") { var fn = e.shiftKey ? window.spotPrevInstrument : window.spotNextInstrument; if (fn) fn(); }  /* I: next, Shift+I: previous. Either way plays the middle note */
+    else if (lk === "u") { var fn2 = e.shiftKey ? window.spotPrevScene : window.spotNextScene; if (fn2) fn2(); }  /* U: next scene layer, Shift+U: previous */
     else if (lk === "f") $("invert").click();                                          /* Flip pitch moved here from I */
     else if (lk === "r") { $("seek").value = 0; $("seek").dispatchEvent(new Event("input")); say("Back at the start."); }
     else if (k === "[") { if (step("rate", -1)) say("Speed " + $("rate").selectedOptions[0].text + ". Playback restarted."); }

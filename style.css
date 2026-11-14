@@ -127,6 +127,16 @@ dialog .btn{margin-top:var(--gap)}
 .chord{margin:-4px 0 10px;font-size:1.5rem;font-weight:700;color:var(--accent)}
 .chord:empty{display:none}
 
+.mixer{margin-top:var(--gap)}
+.mixlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.mixrow{display:grid;grid-template-columns:minmax(7rem,12rem) 1fr auto;align-items:center;gap:12px}
+.mixname{font-weight:600;overflow-wrap:anywhere}
+.mixspec{width:100%;height:32px;display:block;background:#000;border:1px solid var(--line);border-radius:4px}
+.mixrow.muted .mixname{color:var(--mute);text-decoration:line-through}
+.mixrow.muted .mixspec{opacity:.5}
+.mixmute[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
+@media (max-width:600px){.mixrow{grid-template-columns:1fr auto}.mixspec{grid-column:1/-1;order:3}}
+
 @media (max-width:900px){
   .panel{grid-template-columns:1fr}
   .stage,.rail{grid-column:1}

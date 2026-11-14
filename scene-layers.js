@@ -62,8 +62,10 @@ function kenanDrone(env, P) {
   };
 }
 
+
 window.SCENE_LAYERS = {
   enabled: true, // false = no nature layers at all (notes only)
+  parts: { pad: true, drops: false, hiss: true, extras: true },  // false = off in every layer
   gain: 1, // overall loudness of every layer
   rootMidi: null, // null = follow CONFIG.lowMidi
 

@@ -12,7 +12,7 @@
 (function () {
   "use strict";
   var E = {}, ac, out, rev, host, R = 9, env;
-  var pan, revSend, lowpass, noise, noiseGain, bp, lfo, lfoAmt, voices = [];
+  var pans = [], panPad, panDrops, panHiss, cout, revSend, lowpass, noise, noiseGain, bp, lfo, lfoAmt, voices = [];
   var timer = null, nextTime = 0, live = { rows: [], mean: 0, rate: 1 }, playing = false;
   var cache = {}, inst = {}, cur = null, vName = null, V = null, warned = {};
 
@@ -40,7 +40,17 @@
       describe: L.describe || (B && B.describe) || ""
     };
   }
-  function layer(name) { return cache[name] || (cache[name] = resolve(name)); }
+  function layer(name) {
+  if (!cache[name]) {
+    var L = resolve(name), p = SL().parts || {};
+    if (p.pad    === false) L.pad   = mix(L.pad,   { on: false });
+    if (p.drops  === false) L.drops = mix(L.drops, { on: false });
+    if (p.hiss   === false) L.hiss  = mix(L.hiss,  { on: false });
+    if (p.extras === false) L.custom = null;
+    cache[name] = L;
+  }
+  return cache[name];
+}
 
   /* note i (0 = lowest) of the app's scale, in Hz */
   function freq(i, octave) {
@@ -53,11 +63,19 @@
     if (ac) return;
     host = h; ac = h.ctx; out = h.out; rev = h.reverb; R = h.rows || 9;
 
-    pan = ac.createStereoPanner(); pan.connect(out);
-    revSend = ac.createGain(); revSend.gain.value = 0.3; pan.connect(revSend); revSend.connect(rev);
+        revSend = ac.createGain(); revSend.gain.value = 0.3; revSend.connect(rev);
+    function mkPan(id, label) {
+      var p = ac.createStereoPanner();
+      p.connect(h.channel ? h.channel(id, label) : out);
+      p.connect(revSend); pans.push(p); return p;
+    }
+    panPad = mkPan("scene-pad", "Texture pad");
+    panDrops = mkPan("scene-drops", "Texture drops");
+    panHiss = mkPan("scene-hiss", "Texture noise");
+    cout = h.channel ? h.channel("scene-custom", "Layer extras") : out;
 
     lowpass = ac.createBiquadFilter(); lowpass.type = "lowpass"; lowpass.Q.value = 2; lowpass.frequency.value = 300;
-    lowpass.connect(pan);
+    lowpass.connect(panPad);
     for (var r = 0; r < R; r++) {                    // pad: two detuned oscillators per latitude row
       var g = ac.createGain(); g.gain.value = 0; g.connect(lowpass);
       var a = ac.createOscillator(), b = ac.createOscillator();
@@ -71,20 +89,20 @@
     var ns = ac.createBufferSource(); ns.buffer = noise; ns.loop = true;
     bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 3500; bp.Q.value = 0.6;
     noiseGain = ac.createGain(); noiseGain.gain.value = 0;
-    ns.connect(bp); bp.connect(noiseGain); noiseGain.connect(pan); ns.start();
+    ns.connect(bp); bp.connect(noiseGain); noiseGain.connect(panHiss); ns.start();
     lfo = ac.createOscillator(); lfo.frequency.value = 0.1;     // swell: slow pulse on the hiss
     lfoAmt = ac.createGain(); lfoAmt.gain.value = 0;
     lfo.connect(lfoAmt); lfoAmt.connect(noiseGain.gain); lfo.start();
 
     /* what custom layers receive: the hooks into the main audio engine */
     env = {
-      ctx: ac, out: out, reverb: rev, rows: R,
+      ctx: ac, out: cout, reverb: rev, rows: R,
       voice: h.voice, freq: freq, lerp: lerp, clamp01: clamp01,
       noiseBuffer: function () { return noise; },
       bed: function (type, hz, q) {
         var s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
         s.buffer = noise; s.loop = true; f.type = type; f.frequency.value = hz; f.Q.value = q || 0.7; g.gain.value = 0;
-        s.connect(f); f.connect(g); g.connect(out); s.start();
+        s.connect(f); f.connect(g); g.connect(cout); s.start();
         return { f: f, g: g };
       },
       steer: function (b, gain, hz) {
@@ -105,6 +123,13 @@
     }
     bp.type = V.hiss.type; bp.Q.value = V.hiss.q;
     revSend.gain.setTargetAtTime(V.reverb, now, 0.2);
+    if (host.label) {
+      var nm = name.replace(/([A-Z])/g, " $1").replace(/^./, function (c) { return c.toUpperCase(); });
+      host.label("scene-pad", nm + " pad");
+      host.label("scene-drops", nm + " drops");
+      host.label("scene-hiss", nm + " noise");
+      host.label("scene-custom", nm + " extras");
+    }
   }
   function drop(i, when, vel) {
     var D = V.drops, ice = D.kind === "ice", f = freq(i, D.octave), k = D.gain * gainAll();
@@ -115,14 +140,14 @@
     g.gain.setValueAtTime(0, when);
     g.gain.linearRampToValueAtTime((0.03 + 0.14 * vel) * k, when + 0.005);
     g.gain.exponentialRampToValueAtTime(0.0008, when + 1.4);
-    o.connect(g); g.connect(pan); o.start(when); o.stop(when + 1.5);
+    o.connect(g); g.connect(panDrops); o.start(when); o.stop(when + 1.5);
     if (ice) {                                       // inharmonic overtone: rings like glass
       var o2 = ac.createOscillator(), g2 = ac.createGain();
       o2.type = "sine"; o2.frequency.value = f * 2.76;
       g2.gain.setValueAtTime(0, when);
       g2.gain.linearRampToValueAtTime((0.012 + 0.05 * vel) * k, when + 0.003);
       g2.gain.exponentialRampToValueAtTime(0.0005, when + 0.7);
-      o2.connect(g2); g2.connect(pan); o2.start(when); o2.stop(when + 0.8);
+      o2.connect(g2); g2.connect(panDrops); o2.start(when); o2.stop(when + 0.8);
     }
   }
   function scheduler() {                             // every 30 ms; schedules drops a little ahead
@@ -164,7 +189,7 @@
       lfo.frequency.setTargetAtTime(lerp(H.swell, mean), now, 0.5);
       lfoAmt.gain.setTargetAtTime(hg * 0.6, now, 0.5);
     } else lfoAmt.gain.setTargetAtTime(0, now, 0.1);
-    pan.pan.setTargetAtTime(clamp(d.pan || 0), now, 0.05);
+    pans.forEach(function (p) { p.pan.setTargetAtTime(clamp(d.pan || 0), now, 0.05); });
     run(true);
   }
   function stopCustom() {

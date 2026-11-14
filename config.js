@@ -115,9 +115,9 @@ window.CONFIG = {
   storyTour: false,         // true = guided tour: cues announce text AND move the marker. Keep false until the cue times in each preset's story are real.
   anomalyThreshold: 0.12,   // how far above the place's early baseline before the quiet clash fades in
 
-  drone: false,              // one low tone for the whole planet, rises a little as the mean value rises
+  drone: true,              // one low tone for the whole planet, rises a little as the mean value rises
   notes: true,            // false = no instrument notes, texture and drone only
-
+  sustain: false,
 
   /* --- LISTENING ---
      view "spot":  one place, a texture every tick, a sparse note about once a second.
