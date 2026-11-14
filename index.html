@@ -84,11 +84,21 @@
           <div class="two">
             <div>
               <label for="upMin">Lowest value</label
-              ><input id="upMin" type="number" step="any" value="0" />
+              ><input
+                id="upMin"
+                type="number"
+                step="any"
+                placeholder="optional"
+              />
             </div>
             <div>
               <label for="upMax">Highest value</label
-              ><input id="upMax" type="number" step="any" value="100" />
+              ><input
+                id="upMax"
+                type="number"
+                step="any"
+                placeholder="optional"
+              />
             </div>
           </div>
           <label for="upDir">Where is the lowest value on the color bar?</label>
@@ -97,6 +107,34 @@
             <option value="horizontal-lowright">Right end</option>
             <option value="vertical-lowbottom">Bottom end</option>
             <option value="vertical-lowtop">Top end</option>
+          </select>
+          <label for="upInstr">Instrument</label>
+          <select id="upInstr">
+            <option value="pluck">Pluck</option>
+            <option value="bell">Bell</option>
+            <option value="harp">Harp</option>
+            <option value="xylophone">Xylophone</option>
+            <option value="violin">Violin</option>
+            <option value="accordion">Accordion</option>
+            <option value="flute">Flute</option>
+            <option value="piano">Piano</option>
+            <option value="guitar">Acoustic guitar</option>
+            <option value="drum">Drum</option>
+            <option value="windchime">Wind chime</option>
+            <option value="rainstick">Rainstick</option>
+            <option value="drip">Drip</option>
+            <option value="ice">Ice chime</option>
+          </select>
+          <label for="upScene">Background texture</label>
+          <select id="upScene">
+            <option value="intense">Intense</option>
+            <option value="none">None</option>
+            <option value="rain">Rain</option>
+            <option value="heat">Wind</option>
+            <option value="ocean">Ocean</option>
+            <option value="smoke">Smoke</option>
+            <option value="air">Air</option>
+            <option value="city">City hum</option>
           </select>
           <details>
             <summary>More</summary>
@@ -132,6 +170,19 @@
             &larr; Menu <kbd>Esc</kbd>
           </button>
         </div>
+        <div
+          id="instBar"
+          class="instbar"
+          role="group"
+          aria-label="Instrument. Press I for the next one, Shift and I for the previous."
+        ></div>
+        <div class="pitchguide" aria-hidden="true">
+          <span>Low</span>
+          <div class="pitchtrack"><i id="pitchDot"></i></div>
+          <span>High</span>
+        </div>
+        <p id="instName" class="mono"></p>
+        <p id="chordName" class="chord" aria-hidden="true"></p>
         <figure class="vidfig">
           <figcaption>Source video</figcaption>
           <div class="vwrap">
@@ -331,7 +382,7 @@
           </tr>
           <tr>
             <td><kbd>K</kbd></td>
-            <td>Play the sound key</td>
+            <td>Play the sound key (playback pauses while it plays)</td>
           </tr>
           <tr>
             <td><kbd>D</kbd></td>
@@ -346,7 +397,11 @@
             <td>Next or previous named place</td>
           </tr>
           <tr>
-            <td><kbd>I</kbd></td>
+            <td><kbd>I</kbd> / <kbd>Shift</kbd>+<kbd>I</kbd></td>
+            <td>Next or previous instrument (plays the middle note)</td>
+          </tr>
+          <tr>
+            <td><kbd>F</kbd></td>
             <td>Flip pitch</td>
           </tr>
           <tr>
@@ -382,6 +437,8 @@
     </dialog>
 
     <script src="config.js"></script>
+    <script src="scene-layers.js"></script>
+    <script src="scene-engine.js"></script>
     <script src="app.js"></script>
     <script src="ui.js"></script>
   </body>

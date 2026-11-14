@@ -111,6 +111,22 @@ dialog .grp{padding-top:14px;color:var(--accent);border-top:0}
 dialog td:first-child{white-space:nowrap;padding-right:16px}
 dialog .btn{margin-top:var(--gap)}
 
+/* instrument bar: filled icons; the active one turns accent yellow, rises with pitch and pulses on each note */
+.instbar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px}
+.inst{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:68px;padding:6px 8px;background:var(--panel);color:var(--mute);border:2px solid var(--line);font-size:.8rem;cursor:pointer}
+.inst svg{width:28px;height:28px;fill:currentColor;transition:transform .15s}
+.inst:hover{border-color:#fff;background:var(--panel)}
+.inst.on{background:var(--accent);color:var(--on-accent);border-color:var(--accent);font-weight:700}
+.inst.on svg{transform:translateY(calc(var(--lift,0)*-6px))}
+.inst.on.hit svg{animation:hit .25s}
+@keyframes hit{50%{scale:1.25}}
+.pitchguide{display:flex;align-items:center;gap:10px;margin-bottom:6px;color:var(--mute);font-size:.85rem}
+.pitchtrack{position:relative;flex:1;height:6px;background:var(--line);border-radius:3px}
+.pitchtrack i{position:absolute;top:50%;left:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--pulse);border:2px solid #fff;transition:left .12s}
+#instName{margin-bottom:10px}
+.chord{margin:-4px 0 10px;font-size:1.5rem;font-weight:700;color:var(--accent)}
+.chord:empty{display:none}
+
 @media (max-width:900px){
   .panel{grid-template-columns:1fr}
   .stage,.rail{grid-column:1}
