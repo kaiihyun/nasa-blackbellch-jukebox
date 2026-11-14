@@ -1,15 +1,10 @@
-/* UI layer: text size, keyboard shortcuts, help dialog. Drives the controls app.js already owns,
-   so nothing here touches audio or analysis. */
+/* UI layer: landing screen, About and Setting sheets, text size, carousel buttons, keyboard shortcuts.
+   It drives controls app.js already owns, so nothing here touches audio or analysis. */
 (function () {
   var $ = function (id) { return document.getElementById(id); };
-  var body = document.body;
+  var body = document.body, about = $("about"), sets = $("settings"), lastF = null;
 
-  /* Text size, saved in the browser */
-  var sel = $("size"), key = "spot-size";
-  function applySize(v) { document.documentElement.style.fontSize = v + "%"; }
-  var saved = null; try { saved = localStorage.getItem(key); } catch (e) {}
-  if (saved) { sel.value = saved; applySize(saved); }
-  sel.addEventListener("change", function () { applySize(sel.value); try { localStorage.setItem(key, sel.value); } catch (e) {} });
+  function say(t) { if (window.spotSay) window.spotSay(t); else $("live").textContent = t; }
 
   /* Player title mirrors the menu title */
   var t1 = $("pTitle"), t2 = $("pTitle2");
@@ -17,53 +12,132 @@
   new MutationObserver(mirror).observe(t1, { childList: true, characterData: true, subtree: true });
   mirror();
 
-  /* Help dialog */
-  var help = $("help");
-  function toggleHelp() { if (help.open) help.close(); else if (help.showModal) help.showModal(); }
-  $("helpBtn").addEventListener("click", toggleHelp);
-  $("helpClose").addEventListener("click", function () { help.close(); });
+  /* ---- landing and menu ---- */
+  function leaveHome() {
+    if (!body.classList.contains("home")) return;
+    body.classList.remove("home");
+    $("start").focus();
+    say(t1.textContent + ". Press Enter to play. Use the left and right arrow keys to change dataset.");
+  }
+  function goHome() {
+    body.classList.add("home");
+    $("homeStart").focus();
+    say("DANIG. The world, through sound. Press Enter to start.");
+  }
+  function go(d) {
+    var s = $("preset");
+    s.selectedIndex = (s.selectedIndex + d + s.options.length) % s.options.length;
+    s.dispatchEvent(new Event("change"));
+  }
+  $("homeStart").addEventListener("click", leaveHome);
+  $("exitMenu").addEventListener("click", goHome);
+  $("prev").addEventListener("click", function () { go(-1); });
+  $("next").addEventListener("click", function () { go(1); });
+  ["prev", "next"].forEach(function (id) {
+    $(id).addEventListener("mousedown", function (e) { e.preventDefault(); });
+  });
 
-  /* app.js exposes its say(), which also lowers the music while the text is read. */
-  function say(t) { if (window.spotSay) window.spotSay(t); else $("live").textContent = t; }
+  /* ---- sheets ---- */
+  function openDlg(d) {
+    var o = d === about ? sets : about;
+    if (o.open) o.close();
+    if (!d.open) { lastF = document.activeElement; d.showModal(); }
+  }
+  [about, sets].forEach(function (d) {
+    d.addEventListener("close", function () { if (lastF && document.contains(lastF)) lastF.focus(); });
+    d.addEventListener("click", function (e) { if (e.target === d) d.close(); });   /* click the dimmed area to close */
+  });
+  document.querySelectorAll("[data-close]").forEach(function (b) {
+    b.addEventListener("click", function () { b.closest("dialog").close(); });
+  });
+  $("aboutBtn").addEventListener("click", function () { openDlg(about); });
+  $("helpBtn").addEventListener("click", function () { openDlg(sets); });
+
+  /* ---- text size ---- */
+  var SIZES = [["Normal", 100], ["Large", 115], ["Extra large", 130], ["Largest", 150]], si = 0;
+  var radios = [].slice.call(document.querySelectorAll("#sizes [role=radio]"));
+  function applySize(i, quiet) {
+    si = i;
+    document.documentElement.style.setProperty("--fs", SIZES[i][1] + "%");
+    radios.forEach(function (b, j) { b.setAttribute("aria-checked", j === i); b.tabIndex = j === i ? 0 : -1; });
+    try { localStorage.setItem("danigSize", i); } catch (e) {}
+    if (!quiet) say("Text size: " + SIZES[i][0] + ".");
+  }
+  radios.forEach(function (b, j) { b.addEventListener("click", function () { applySize(j); }); });
+  function moveSize(d) { var j = (si + d + SIZES.length) % SIZES.length; applySize(j); radios[j].focus(); }
+  try { applySize(Math.max(0, Math.min(3, +localStorage.getItem("danigSize") || 0)), true); } catch (e) { applySize(0, true); }
+
+  /* ---- keyboard shortcut pages (match the keys wired in app.js and below) ---- */
+  var K = function () { return [].slice.call(arguments).map(function (k) { return "<kbd>" + k + "</kbd>"; }).join(" "); };
+  var PAGES = [
+    ["Menu", [[K("&larr;", "&rarr;"), "Previous or next dataset"], [K("1") + " to " + K("6"), "Jump to a dataset"],
+      [K("Enter") + " or " + K("Space"), "Start, then open the player"], [K("A"), "About"], [K("?"), "Setting and shortcuts"],
+      [K("T"), "Change text size"], [K("Esc"), "Back one screen"]]],
+    ["Player", [[K("Space"), "Play or pause"], [K("S"), "Silence now (pause)"], [K(",") + " " + K("."), "Seek back or forward 5 seconds"],
+      [K("&larr;", "&rarr;", "&uarr;", "&darr;"), "Move the listening spot"], [K("N") + " / " + K("Shift") + "+" + K("N"), "Next or previous named place"],
+      [K("R"), "Restart from the beginning"], [K("K"), "Play the sound key (pauses playback)"], [K("D"), "Describe this moment"]]],
+    ["Player, sound", [[K("I") + " / " + K("Shift") + "+" + K("I"), "Next or previous instrument"],
+      [K("U") + " / " + K("Shift") + "+" + K("U"), "Next or previous scene layer"], [K("C"), "Major or minor pentatonic"],
+      [K("[") + " " + K("]"), "Slower or faster (restarts playback)"], [K("-") + " " + K("="), "Volume down or up"], [K("Esc"), "Back to the menu"]]],
+    ["Map", [[K("M"), "Focus the map"], [K("Click") + " or " + K("Tap"), "Place the spot"], [K("?"), "Open or close this list"]]]
+  ], kp = 0;
+  function drawKeys() {
+    var p = PAGES[kp], tb = $("kRows");
+    $("kTitle").textContent = p[0]; tb.textContent = "";
+    p[1].forEach(function (r) {
+      var tr = document.createElement("tr"), a = document.createElement("td"), b = document.createElement("td");
+      a.innerHTML = r[0]; b.textContent = r[1]; tr.appendChild(a); tr.appendChild(b); tb.appendChild(tr);
+    });
+    $("kPage").textContent = (kp + 1) + " of " + PAGES.length;
+    $("kBack").disabled = kp === 0; $("kNext").disabled = kp === PAGES.length - 1;
+  }
+  $("kBack").addEventListener("click", function () { if (kp > 0) { kp--; drawKeys(); } });
+  $("kNext").addEventListener("click", function () { if (kp < PAGES.length - 1) { kp++; drawKeys(); } });
+  drawKeys();
+
   function step(id, d) {
     var s = $(id), i = Math.max(0, Math.min(s.options.length - 1, s.selectedIndex + d));
     if (i === s.selectedIndex) return false;
     s.selectedIndex = i; s.dispatchEvent(new Event("change")); return true;
   }
-  /* Move to the next option and wrap around. */
-  function cycle(id) {
-    var s = $(id); s.selectedIndex = (s.selectedIndex + 1) % s.options.length;
-    s.dispatchEvent(new Event("change"));
-  }
 
+  /* ---- keys. Capture phase, so this runs before app.js and can keep keys away from it ---- */
   document.addEventListener("keydown", function (e) {
-    if (help.open) {                       /* dialog owns the keyboard while open */
-      if (e.key === "?") { e.preventDefault(); help.close(); }
-      e.stopPropagation(); return;
+    var k = e.key;
+    if (about.open || sets.open) {          /* a sheet owns the keyboard while open */
+      if (k === "?") { e.preventDefault(); (about.open ? about : sets).close(); }
+      else if (sets.open && (k === "ArrowLeft" || k === "ArrowRight") && e.target.getAttribute("role") === "radio") {
+        e.preventDefault(); moveSize(k === "ArrowRight" ? 1 : -1);
+      }
+      e.stopImmediatePropagation(); return;
     }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     if (/INPUT|SELECT|TEXTAREA/.test(e.target.tagName)) return;
-    var k = e.key, playing = body.classList.contains("playing");
-    if (k === "?") { e.preventDefault(); toggleHelp(); return; }
+    var lk = k.toLowerCase(), home = body.classList.contains("home"), playing = body.classList.contains("playing");
+    if (k === "?") { e.preventDefault(); openDlg(sets); return; }
+    if (lk === "a") { e.preventDefault(); openDlg(about); return; }
+    if (lk === "t") { applySize((si + 1) % SIZES.length); return; }
 
-    if (!playing) {                        /* menu: number keys pick a dataset */
+    if (home) {                             /* landing: only Start is live */
+      if ((k === "Enter" || k === " ") && e.target.tagName !== "BUTTON") { e.preventDefault(); leaveHome(); }
+      e.stopImmediatePropagation(); return;
+    }
+    if (!playing) {                         /* menu */
+      if (k === "Escape" && !body.classList.contains("form")) { goHome(); return; }
       var n = parseInt(k, 10), cards = document.querySelectorAll(".cf");
       if (n >= 1 && n <= cards.length && !cards[n - 1].classList.contains("on")) cards[n - 1].click();
       return;
     }
-    var lk = k.toLowerCase();
     if (lk === "k") $("key").click();
     else if (lk === "d") $("describe").click();
-    else if (lk === "s") {                 /* silence now: stops the music so the screen reader is clear */
+    else if (lk === "s") {
       if (body.classList.contains("running")) $("play").click(); else say("Already silent.");
     }
     else if (lk === "m") { $("map").focus(); say("Map focused. Arrow keys move the listening spot."); }
-    else if (lk === "v") { cycle("target"); }
-    else if (lk === "n") { if ($("target").value === "spot") { var p = $("place"); p.selectedIndex = (p.selectedIndex + (e.shiftKey ? -1 : 1) + p.options.length - 1) % (p.options.length - 1); p.dispatchEvent(new Event("change")); } }
-    else if (lk === "i") { var fn = e.shiftKey ? window.spotPrevInstrument : window.spotNextInstrument; if (fn) fn(); }  /* I: next, Shift+I: previous. Either way plays the middle note */
-    else if (lk === "u") { var fn2 = e.shiftKey ? window.spotPrevScene : window.spotNextScene; if (fn2) fn2(); }  /* U: next scene layer, Shift+U: previous */
+    else if (lk === "n") { if (window.spotNextPlace) window.spotNextPlace(e.shiftKey ? -1 : 1); }
+    else if (lk === "i") { var fn = e.shiftKey ? window.spotPrevInstrument : window.spotNextInstrument; if (fn) fn(); }
+    else if (lk === "u") { var fn2 = e.shiftKey ? window.spotPrevScene : window.spotNextScene; if (fn2) fn2(); }
     else if (lk === "c") { if (window.spotToggleScale) window.spotToggleScale(); }
-    else if (lk === "f") $("invert").click();                                          /* Flip pitch moved here from I */
     else if (lk === "r") { $("seek").value = 0; $("seek").dispatchEvent(new Event("input")); say("Back at the start."); }
     else if (k === "[") { if (step("rate", -1)) say("Speed " + $("rate").selectedOptions[0].text + ". Playback restarted."); }
     else if (k === "]") { if (step("rate", 1)) say("Speed " + $("rate").selectedOptions[0].text + ". Playback restarted."); }
@@ -72,4 +146,8 @@
       v.dispatchEvent(new Event("input")); say("Volume " + Math.round(v.value * 100) + " percent.");
     }
   }, true);
+
+  /* open on the landing screen */
+  $("homeStart").focus();
+  say("DANIG. The world, through sound. Press Enter to start.");
 })();

@@ -6,13 +6,12 @@ window.CONFIG = {
   /* --- GRID: how coarsely we look at each frame (columns x rows) --- */
   grid: { cols: 18, rows: 9 },
 
-  /* --- BANDS: used by the whole-map views, the description and the table.
-     Rows count from the top (north) to the bottom (south). --- */
-  bands: [
-    { name: "Northern latitudes", rowStart: 0, rowEnd: 3 },
-    { name: "Tropics",            rowStart: 3, rowEnd: 6 },
-    { name: "Southern latitudes", rowStart: 6, rowEnd: 9 }
-  ],
+  /* --- SCREEN: switch parts of the player on or off --- */
+  ui: {
+    showMixer: true,          // the "Playing now" list with one spectrum and mute per sound layer
+    showScenePicker: true,    // the scene layer button (and the U key)
+    duckWhileSpeaking: false  // true = lower the music while announcements are read
+  },
 
   /* --- PLACES: named spots for "One place" listening. lat: north is +, lon: east is +.
      Assumes the video is a whole flat world map (-180 to 180, 90 to -90). --- */
@@ -85,13 +84,6 @@ window.CONFIG = {
   spotStep: 3,              // arrow keys move the spot by this many degrees
 
   /* --- MUSIC --- */
-  sweepMs: 14000,           // sweep view: how long one west-to-east sweep takes (slow and smooth)
-  sweepSub: 4,              // sweep view: small steps per column. More = smoother, 4 is plenty
-  sweepNoteMs: 450,         // sweep view: longest wait between instrument notes (smaller = busier)
-  sweepGlide: true,         // sweep view: a sustained voice slides between pitches so there are no gaps
-  sweepStepSec: 1.5,        // sweep view: video time that jumps forward after each sweep
-  chordMs: 1000,            // chord view: one chord every N ms while the video plays
-  maxNotesPerColumn: 2,     // sweep view: strongest notes kept per column
  
   noteEveryTicks: -1,   // 1 = notes on every reading
   notesPerTick: 1,     // how many notes sound per reading (1 = just the main note)
@@ -104,7 +96,7 @@ window.CONFIG = {
   lowMidi: 48,              // lowest note (60 = middle C)
   volume: 1.2,
     
-  /* Instruments: pluck, bell, sparkle, harp, lyre, flute, rainstick, guitar, windchime, piano*/
+  /* Instruments: pluck, bell, sparkle, harp, xylophone, flute, piano, accordion */
  timbres: { liquid:"bell", frozen:"bell", temperature:"harp", seatemperature:"harp", default:"pluck",
   carbon_monoxide:"flute", ozone:"lyre", nitrogen_oxide:"harp" },
   noteGain: { liquid: 8, default: 1 },   // per legend type, multiplies note loudness
@@ -123,18 +115,13 @@ window.CONFIG = {
   notes: true,            // false = no instrument notes, texture and drone only
   sustain: true,
 
-  /* --- LISTENING ---
-     view "spot":  one place, a texture every tick, a sparse note about once a second.
-     view "map":   the whole map swept west to east. The video freezes during each sweep.
-     view "chord": the whole map as one chord per second while the video plays. */
+  /* --- LISTENING: you pick a place (click the map or the video, arrow keys, or N for named places). --- */
   listen: {
-    view: "spot",
-    mode: "cycle",          // sweep view only: "cycle", "all", or a band number 0, 1, 2
-    invertPitch: false,     // false: higher value (or further north) = higher note
+    invertPitch: false,     // false: higher value = higher note
     panWidth: 0.9,          // 0 = mono, 1 = hard left and right
     loudness: [0.1, 0.45],  // quietest and loudest note
     reverb: 0.12,
-    flipPan: true           //which ear is music
+    flipPan: true           // which ear is music
   },
 
   /* --- ANALYSIS: how pixels become values --- */
@@ -148,12 +135,6 @@ window.CONFIG = {
     dryTolerance: 30,
     noDataColor: null
   },
-
-  /* --- ACCESSIBILITY --- */
-  announceEveryBeats: 4,    // map views: screen reader summary every N sweeps or chords
-
-  /* --- DETAILS PANEL --- */
-  info: { now: true, stats: true, bands: true, legends: true },
 
   /* --- LAST CARD: the upload slot (the form opens when you press Play on it) --- */
   upload: { name: "Upload your own", description: "Bring a video and a picture of its color bar. Hear any map move.",

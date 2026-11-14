@@ -4,12 +4,9 @@
    5 frame analysis, 6 audio, 7 description, 8 drawing,
    9 playback, 10 menu + upload, 11 page controls
 
-   THREE WAYS TO LISTEN (every one has a nature texture under its notes; all read the CURRENT video frame, so sound and picture always match):
-   - One place: every 250 ms the colour at the spot drives a nature texture (rain, wind, ocean),
-     and about once a second a note. Texture = what and how much, note = exact value.
-   - Sweep: the video FREEZES, a west-to-east sweep reads that one frame (the strongest signal in each column steers the texture), then the video jumps
-     forward and the next sweep begins. Every sweep describes one real moment.
-   - Chord: the video plays, and once a second the strongest signal in each band sounds as a chord.
+   LISTENING: pick a place (click the map or the video, arrow keys, or N for named places).
+   Every 250 ms the colour at the spot drives a nature texture (rain, wind, ocean) and a note.
+   Everything reads the CURRENT video frame, so sound and picture always match.
 
    SCENE LAYERS (nature texture): add or change them ONLY in scene-layers.js. scene-engine.js is the shared engine.
    Notes and instruments: config.js.
@@ -27,15 +24,12 @@
     NOTE_SPREAD = C.noteSpreadSteps || 2;
   var NOTE_GAIN = C.noteGain || {};
 
-  var SWEEP_MS = C.sweepMs || 4000;
-  var SWEEP_STEP = C.sweepStepSec || 1.5;
-  var CHORD_MS = C.chordMs || 1000;
-  var MAX_PER_COL = C.maxNotesPerColumn || 2;
-  var SWEEP_SUB = C.sweepSub || 4; // small steps per column in the sweep: more = smoother
-  var NOTE_MS = C.sweepNoteMs || 450; // sweep view: longest wait between instrument notes
   var LOW_MIDI = C.lowMidi || 48;
   var OCTAVES = C.octaves || 3;
-  var ANNOUNCE = C.announceEveryBeats || 4;
+  var UI = C.ui || {};
+  var SHOW_MIXER = UI.showMixer !== false; // config.js ui.showMixer: the "Playing now" spectrum list
+  var SHOW_SCENE = UI.showScenePicker !== false; // config.js ui.showScenePicker: the scene layer button
+  var DUCK = !!UI.duckWhileSpeaking; // config.js ui.duckWhileSpeaking
   var LI = C.listen || {};
   var FLIP = LI.flipPan ? -1 : 1;
   var PAN = LI.panWidth != null ? LI.panWidth : 0.9;
@@ -93,7 +87,8 @@
     active: null,
     mode: String(LI.mode || "cycle"),
     invert: !!LI.invertPitch,
-    target: LI.view === "map" ? "map" : LI.view === "chord" ? "chord" : "spot",
+    target: "spot", // the one and only listening mode: pick a place
+    placeIdx: 0, // which named place N cycles from
     spot: null,
     view: "menu",
     idx: 0,
@@ -105,8 +100,6 @@
     scene: null, // scene layer chosen with the U key; null = the preset's own layer
     mood: 1, // 1 = major (bright), 0 = minor (dark): set from the data before each chord note
     keyBusy: false, // true while the sound key is playing
-    sw: null, // sweep view: { k, t } = the sub-step the engine last played and when (read by sweepLoop)
-    sub: 0, lastNote: -99, lastStep: -1, gap: 0, // sweep view bookkeeping
   };
 
   /* ===== MIXER: one channel per sound layer, each with a spectrum tap and a mute ===== */
@@ -181,33 +174,11 @@
     $("mixEmpty").hidden = any;
   }
 
-  /* Smooth sweep line: moves every animation frame between the engine's column ticks. */
-  function sweepLoop() {
-    requestAnimationFrame(sweepLoop);
-    var v = $("vline"), m = $("mline");
-    if (!v || !m) return;
-    var on = S.target === "map" && S.timer && S.sw &&
-             document.body.classList.contains("playing");
-    v.style.display = m.style.display = on ? "block" : "none";
-    if (!on) return;
-    var rate = parseFloat($("rate").value) || 1,
-        total = C.grid.cols * SWEEP_SUB,
-        tickMs = SWEEP_MS / total / rate,
-        f = Math.max(0, Math.min(1, (performance.now() - S.sw.t) / tickMs)),
-        pos = Math.min(1, (S.sw.k + 0.5 + f) / total),
-        cr = S.crop;
-    m.style.left = pos * 100 + "%";
-    v.style.left = (cr.x + pos * cr.w) * 100 + "%";
-    v.style.top = cr.y * 100 + "%";
-    v.style.height = cr.h * 100 + "%";
-  }
-
   /* ===== REGION 2: HELPERS ===== */
   var duckT = null;
   /* Lower the music while a screen reader speaks. The length of speech is estimated from the word count. */
   function duck(text) {
-    var box = $("duck");
-    if (!S.master || !S.ctx || !box || !box.checked) return;
+    if (!DUCK || !S.master || !S.ctx) return;
     var ms = Math.min(12000, 800 + text.split(/\s+/).length * 400);
     S.master.gain.setTargetAtTime(
       parseFloat($("volume").value) * 0.2,
@@ -225,7 +196,6 @@
   }
   function say(t, noDuck) {
     $("live").textContent = t;
-    $("liveVis").textContent = t;
     if (!noDuck) duck(t);
   }
   window.spotSay = say; // ui.js uses this so its announcements duck the music too
@@ -292,9 +262,6 @@
     return (
       (L && L.spec.scene) || (L && by[L.spec.type]) || by["default"] || "none"
     );
-  }
-  function mapLike() {
-    return S.target !== "spot";
   }
 
   /* Place names for any spot: nearest gazetteer entry, judged against its own size. */
@@ -446,15 +413,7 @@
     box.innerHTML = "";
     S.legends.forEach(function (L) {
       var p = document.createElement("p");
-      p.textContent =
-        L.spec.label +
-        ": " +
-        L.spec.min +
-        " to " +
-        L.spec.max +
-        ", " +
-        L.spec.scale +
-        " scale.";
+      p.textContent = L.spec.label + ": " + L.spec.min + " to " + L.spec.max + ", " + L.spec.scale + " scale.";
       var cv = document.createElement("canvas");
       cv.className = "strip";
       cv.width = 512;
@@ -466,12 +425,7 @@
         g.fillStyle = "rgb(" + e.r + "," + e.g + "," + e.b + ")";
         g.fillRect(e.t * 508, 0, 6, 24);
       });
-      var img = document.createElement("img");
-      img.className = "orig";
-      img.src = L.src;
-      img.alt = "Original legend image for " + L.spec.label;
       box.appendChild(p);
-      box.appendChild(img);
       box.appendChild(cv);
     });
     if (S.warn) {
@@ -890,35 +844,6 @@
       g.connect(send);
       send.connect(S.conv); // extra reverb
     },
-    windchime: function (f, t, v, g) {
-      // a quick scatter of metal tubes, notes from your scale
-      var c = S.ctx,
-        n = 4 + Math.floor(Math.random() * 3),
-        k,
-        send = c.createGain();
-      for (k = 0; k < n; k++) {
-        var w = t + Math.random() * 0.9,
-          p = c.createStereoPanner(),
-          a = 0.5 + Math.random() * 0.5,
-          fq =
-            f *
-            2 *
-            Math.pow(
-              2,
-              C.scale[Math.floor(Math.random() * C.scale.length)] / 12,
-            );
-        p.pan.value = Math.random() * 1.6 - 0.8;
-        p.connect(g);
-        tone("sine", fq, a, w, 2.4, p);
-        tone("sine", fq * 2.76, a * 0.4, w, 1.2, p); // tube-like inharmonic partials
-        tone("sine", fq * 5.4, a * 0.2, w, 0.6, p);
-      }
-      g.gain.setValueAtTime(v * 0.7, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 3.3);
-      send.gain.value = 0.7;
-      g.connect(send);
-      send.connect(S.conv);
-    },
     /* CREATIVE CHOICE: the piano never plays a lone note. Each note is prolonged into a
        triad (root, third, fifth) that is rolled like a hand spreading the chord, and it rings
        for about four seconds. The third carries the feeling: major (4 semitones) sounds open
@@ -1030,154 +955,6 @@
       g.gain.setValueAtTime(v, t + 0.45);
       g.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
     },
-    rainstick: function (f, t, v, g) {
-      // a shower of tiny pebbles; pitch only nudges the brightness
-      var c = S.ctx,
-        hi = 2500 + f * 3,
-        k;
-      for (k = 0; k < 16; k++) {
-        var w = t + Math.random(),
-          s = c.createBufferSource(),
-          bf = c.createBiquadFilter(),
-          pg = c.createGain();
-        s.buffer = noiseBuf();
-        bf.type = "bandpass";
-        bf.frequency.value = hi * (0.5 + Math.random() * 0.9);
-        bf.Q.value = 5;
-        pg.gain.setValueAtTime(0.0001, w);
-        pg.gain.exponentialRampToValueAtTime(
-          0.5 * (1 - (w - t) * 0.6),
-          w + 0.004,
-        );
-        pg.gain.exponentialRampToValueAtTime(0.0001, w + 0.07);
-        s.connect(bf);
-        bf.connect(pg);
-        pg.connect(g);
-        s.start(w, Math.random(), 0.1);
-      }
-      envelope(g, t, v * 2, 1.2);
-    },
-    /* CREATIVE CHOICE: the guitar is a chord ladder, so a listener can name what they hear.
-       Each of the 15 note steps maps onto 24 low chords, in the order of a guitarist's low
-       E string: E Major, E Minor, F Major, F Minor, F sharp / G flat Major, F sharp / G flat
-       Minor, and on up to D sharp / E flat Minor. The root sits between E2 and D sharp 3, so
-       everything is low and warm. Each note is ONE acoustic strum: the root note is struck
-       alone and a little louder (the thumb bass), then the other four strings sweep up from
-       it. Root first, always (no alternating up-strums) so the ear catches the root and
-       knows the pitch. The strings are long Karplus-Strong tails of about three seconds, a
-       wooden body is faked with two low resonances (110 and 230 Hz), and a lowpass closes
-       as the sound fades, like a real guitar going warm and dull. The chord name is shown
-       on screen and read out in the sound key. */
-    guitar: function (f, t, v, g) {
-      var c = S.ctx,
-        ch = chordForStep(stepOfFreq(f)),
-        shape = [0, 7, 12, 12 + (ch.minor ? 3 : 4), 19], // root, fifth, octave, third, high fifth
-        body = c.createBiquadFilter(),
-        top = c.createBiquadFilter(),
-        warm = c.createBiquadFilter(),
-        pk = c.createBufferSource(),
-        pf = c.createBiquadFilter(),
-        pg = c.createGain();
-      body.type = "peaking";
-      body.frequency.value = 110;
-      body.gain.value = 7;
-      body.Q.value = 1.2;
-      top.type = "peaking";
-      top.frequency.value = 230;
-      top.gain.value = 4;
-      top.Q.value = 1.5;
-      warm.type = "lowpass";
-      warm.frequency.setValueAtTime(6000, t);
-      warm.frequency.exponentialRampToValueAtTime(1800, t + 3);
-      body.connect(top);
-      top.connect(warm);
-      warm.connect(g);
-      pk.buffer = noiseBuf(); // the pick
-      pf.type = "bandpass";
-      pf.frequency.value = 2500;
-      pf.Q.value = 1;
-      pg.gain.setValueAtTime(0.15, t);
-      pg.gain.exponentialRampToValueAtTime(0.0001, t + 0.025);
-      pk.connect(pf);
-      pf.connect(pg);
-      pg.connect(g);
-      pk.start(t, Math.random(), 0.05);
-      shape.forEach(function (st, j) {
-        var src = c.createBufferSource(),
-          sg = c.createGain(),
-          w = t + (j ? 0.07 + j * 0.05 + Math.random() * 0.008 : 0); // root first, then the sweep
-        src.buffer = ksBuf(midiToHz(ch.midi + st));
-        sg.gain.value = j === 0 ? 1.5 : 1 - j * 0.1; // the root note speaks loudest
-        src.connect(sg);
-        sg.connect(body);
-        src.start(w);
-        src.stop(w + 3.3);
-      });
-      g.gain.setValueAtTime(v * 0.75, t);
-      g.gain.exponentialRampToValueAtTime(v * 0.4, t + 0.9);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 3.5);
-      setTimeout(
-        function () {
-          chordLabel(ch); // show the chord at the moment it sounds
-        },
-        Math.max(0, (t - c.currentTime) * 1000),
-      );
-    },
-    /* CREATIVE CHOICE: the violin is a bowed string, the only voice that swells. Two slightly
-       detuned sawtooth strings, a bow that bites in over 90 ms, and a filter that opens as
-       the bow catches. Vibrato arrives late (it starts at zero and grows over 0.4 s), because
-       a real player lets the note settle before shaking it. A whisper of bow noise and a
-       wooden body resonance near 550 Hz keep it from sounding like a synth. */
-    violin: function (f, t, v, g) {
-      var c = S.ctx,
-        dur = 1.1,
-        fl = c.createBiquadFilter(),
-        bd = c.createBiquadFilter(),
-        lfo = c.createOscillator(),
-        la = c.createGain(),
-        n = c.createBufferSource(),
-        nf = c.createBiquadFilter(),
-        ng = c.createGain();
-      fl.type = "lowpass";
-      fl.Q.value = 1.2;
-      fl.frequency.setValueAtTime(f * 2, t);
-      fl.frequency.linearRampToValueAtTime(Math.min(8000, f * 7), t + 0.15);
-      bd.type = "peaking";
-      bd.frequency.value = 550;
-      bd.gain.value = 5;
-      bd.Q.value = 1.4;
-      fl.connect(bd);
-      bd.connect(g);
-      lfo.frequency.value = 5.5;
-      la.gain.setValueAtTime(0, t);
-      la.gain.linearRampToValueAtTime(14, t + 0.4); // vibrato depth in cents
-      lfo.connect(la);
-      [-6, 6].forEach(function (dt) {
-        var o = c.createOscillator();
-        o.type = "sawtooth";
-        o.frequency.value = f;
-        o.detune.value = dt;
-        la.connect(o.detune);
-        o.connect(fl);
-        o.start(t);
-        o.stop(t + dur + 0.1);
-      });
-      lfo.start(t);
-      lfo.stop(t + dur + 0.1);
-      n.buffer = noiseBuf(); // bow noise
-      nf.type = "bandpass";
-      nf.frequency.value = f * 3;
-      nf.Q.value = 2;
-      ng.gain.value = 0.05;
-      n.connect(nf);
-      nf.connect(ng);
-      ng.connect(g);
-      n.start(t, Math.random(), dur);
-      g.gain.setValueAtTime(0.0001, t);
-      g.gain.exponentialRampToValueAtTime(v * 0.3, t + 0.09); // the bow catches
-      g.gain.exponentialRampToValueAtTime(v * 0.24, t + 0.7);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-    },
     /* CREATIVE CHOICE: the accordion is a reed organ, so it is built from reeds. Two square
        reeds detuned a few cents either side of the note (the "musette" shimmer that makes an
        accordion sound like an accordion), a sawtooth reed an octave up and one at pitch. A
@@ -1242,59 +1019,6 @@
       g.gain.exponentialRampToValueAtTime(v * 0.36, t + 0.4); // small swell
       g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     },
-    /* CREATIVE CHOICE: the drum is for intense, clear beats, so it is short, dry and loud,
-       and it stays a pitched instrument so the data is still readable. The note's height
-       picks the part of the kit: low notes are a kick (a sine falling from 150 to 45 Hz),
-       middle notes are a tom with a snare crack, high notes are a tom with a hi-hat tick.
-       Inside each part the tom pitch still climbs with the value. Every hit starts with a
-       stick click so each beat is clear even when the spot reads four times a second. */
-    drum: function (f, t, v, g) {
-      var c = S.ctx,
-        m = 69 + 12 * Math.log2(f / 440),
-        pos = Math.max(0, Math.min(1, (m - LOW_MIDI) / (12 * OCTAVES))),
-        base = 60 + pos * 160;
-      function sweep(f0, f1, sw, dur, amp) {
-        var o = c.createOscillator(),
-          og = c.createGain();
-        o.type = "sine";
-        o.frequency.setValueAtTime(f0, t);
-        o.frequency.exponentialRampToValueAtTime(f1, t + sw);
-        og.gain.setValueAtTime(amp, t);
-        og.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        o.connect(og);
-        og.connect(g);
-        o.start(t);
-        o.stop(t + dur + 0.05);
-      }
-      function hit(type, hz, q, amp, dur) {
-        var s2 = c.createBufferSource(),
-          bf = c.createBiquadFilter(),
-          hg = c.createGain();
-        s2.buffer = noiseBuf();
-        bf.type = type;
-        bf.frequency.value = hz;
-        bf.Q.value = q;
-        hg.gain.setValueAtTime(amp, t);
-        hg.gain.exponentialRampToValueAtTime(0.0001, t + dur);
-        s2.connect(bf);
-        bf.connect(hg);
-        hg.connect(g);
-        s2.start(t, Math.random(), dur + 0.05);
-      }
-      hit("highpass", 3000, 0.7, 0.5, 0.012); // stick click
-      if (pos < 0.34) {
-        sweep(150, 45, 0.08, 0.4, 1); // kick
-        sweep(base * 1.5, base, 0.05, 0.2, 0.4);
-      } else if (pos < 0.67) {
-        sweep(base * 1.8, base, 0.06, 0.3, 0.8); // tom
-        hit("bandpass", 1800, 0.8, 0.6, 0.15); // snare crack
-      } else {
-        sweep(base * 1.8, base, 0.06, 0.25, 0.5); // small tom
-        hit("highpass", 7000, 0.7, 0.5, 0.06); // hi-hat tick
-      }
-      g.gain.setValueAtTime(v * 1.4, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.55);
-    },
   };
   /* Which instrument a tile plays: the legend's own timbre, then config.timbres[type], then default. */
   function timbreOf(t) {
@@ -1310,54 +1034,10 @@
       (NOTE_GAIN[t.type] || NOTE_GAIN["default"] || 1)
     );
   }
-  /* Chord colour for the piano and guitar: the upper half of the legend is major (bright),
+  /* Chord colour for the piano: the upper half of the legend is major (bright),
      the lower half is minor (dark). Call it right before voice(). */
   function setMood(norm) {
     S.mood = norm === undefined || norm >= 0.5 ? 1 : 0;
-  }
-  /* The guitar's chord ladder: 12 roots from low E (E2) up by semitones, each as Major then
-     Minor, 24 chords. A note step (0 to 14) is spread across the ladder. */
-  var ROOT_SHOW = ["E", "F", "F♯/G♭", "G", "G♯/A♭", "A", "A♯/B♭", "B", "C", "C♯/D♭", "D", "D♯/E♭"];
-  var ROOT_SAY = ["E", "F", "F sharp or G flat", "G", "G sharp or A flat", "A", "A sharp or B flat", "B", "C", "C sharp or D flat", "D", "D sharp or E flat"];
-  var LOW_E = 40; // MIDI 40 = E2, the guitar's lowest string
-  function stepOfFreq(f) {
-    var m = 69 + 12 * Math.log2(f / 440),
-      len = C.scale.length * OCTAVES,
-      best = 0,
-      bd = 1e9;
-    for (var k = 0; k < len; k++) {
-      var d = Math.abs(noteFor(k) - m);
-      if (d < bd) {
-        bd = d;
-        best = k;
-      }
-    }
-    return best;
-  }
-  function chordForStep(k) {
-    var len = C.scale.length * OCTAVES,
-      idx = Math.round((k / (len - 1)) * 23),
-      root = idx >> 1,
-      minor = idx % 2 === 1;
-    return {
-      idx: idx,
-      root: root,
-      minor: minor,
-      midi: LOW_E + root,
-      name: ROOT_SHOW[root] + (minor ? " Minor" : " Major"),
-      say: ROOT_SAY[root] + (minor ? " minor" : " major"),
-    };
-  }
-  function chordLabel(ch) {
-    var el = $("chordName");
-    if (el && currentInstr() === "guitar") el.textContent = "Chord: " + ch.name;
-  }
-  /* The eight chords of the sound key, read out for screen reader users. */
-  function keyChordText(n) {
-    if (S.target !== "spot") return "";
-    var names = [];
-    for (var q = 0; q < n; q++) names.push(chordForStep(indexForNorm(q / (n - 1))).say);
-    return " The chords, from the lowest value to the highest: " + names.join(", ") + ".";
   }
   function notesOn() {
     return C.notes !== false;
@@ -1429,27 +1109,6 @@
     if (k > 0) a[k - 1] = n * 0.5;
     if (k < R - 1) a[k + 1] = n * 0.5;
     return a;
-  }
-  /* Chord view: the mean strength of each latitude row. */
-  function rowMeans(tiles) {
-    var cols = C.grid.cols,
-      R = C.grid.rows,
-      out = [],
-      r,
-      c;
-    for (r = 0; r < R; r++) {
-      var s = 0,
-        n = 0;
-      for (c = 0; c < cols; c++) {
-        var t = tiles[r * cols + c];
-        if (wetTile(t)) {
-          s += t.norm;
-          n++;
-        }
-      }
-      out.push(n ? s / n : 0);
-    }
-    return out;
   }
   /* Hand one reading to its scene layer. rows: per-latitude strengths (map views); a: anomaly (spot view). */
   function scene(kind, tile, pan, ms, rows, a) {
@@ -1549,10 +1208,6 @@
     if (S.pad && S.ctx)
       S.pad.g.gain.setTargetAtTime(0, S.ctx.currentTime, 0.15);
   }
-  function inBand(r) {
-    var b = S.active;
-    return !b || (r >= b.rowStart && r < b.rowEnd);
-  }
   function glow(t) {
     var s = document.documentElement.style;
     if (t && t.color) {
@@ -1602,29 +1257,19 @@
   var KEY_GAP = {
     drip: 0.5, ice: 0.5, sparkle: 0.5,
     harp: 0.6,
-    windchime: 1.0,
     piano: 0.45,
     flute: 0.6,
     xylophone: 0.4,
-    violin: 0.8,
     accordion: 0.8,
-    rainstick: 1.5,
-    guitar: 0.9, // the strum rings long, so the key leaves room
-    drum: 0.3,
     bell: 0.45,
   };
   var INSTR_NAME = {
     drip: "water drip", ice: "ice chime", sparkle: "glass sparkle",
     harp: "dreamy harp",
-    windchime: "wind chime",
     piano: "piano",
     flute: "flute",
     xylophone: "xylophone",
-    violin: "violin",
     accordion: "accordion",
-    rainstick: "rainstick",
-    guitar: "acoustic guitar",
-    drum: "drum kit",
     bell: "bell",
     pluck: "plucked note",
   };
@@ -1646,15 +1291,9 @@
       end,
       sc = (window.SceneLayers && SceneLayers.describe(sceneOf(L))) || "",
       unp =
-        kt === "rainstick"
-          ? " The rainstick has no clear pitch, so the notes change in brightness more than in height."
-          : kt === "drum"
-            ? " The drum changes with height: low notes are a kick, middle notes are a tom with a snare crack, high notes are a tom with a hi-hat."
-            : kt === "piano"
-            ? " The piano plays chords: bright major for higher values, darker minor for lower values."
-            : kt === "guitar"
-              ? " The acoustic guitar plays low chords, one strum per note, with the root note first." + keyChordText(8)
-              : "",
+        kt === "piano"
+          ? " The piano plays chords: bright major for higher values, darker minor for lower values."
+          : "",
       pz = wasRunning ? " Playback is paused while the key plays." : "";
     function guide(when, norm) {
       // the pitch meter follows each key note
@@ -1665,60 +1304,31 @@
         Math.max(0, (when - S.ctx.currentTime) * 1000),
       );
     }
-    if (S.target === "spot") {
-      for (i = 0; i < n; i++) {
-        setMood(i / (n - 1));
-        voice(midiToHz(pitchForNorm(i / (n - 1))), t + i * gap, kt, 0.25 * ng, 0);
-        guide(t + i * gap, i / (n - 1));
-      }
-      var t2 = t + n * gap + 0.6;
-      setMood(0.5);
-      voice(midiToHz(pitchForNorm(0.5)), t2, kt, 0.1 * ng, 0);
-      voice(midiToHz(pitchForNorm(0.5)), t2 + gap * 2, kt, 0.45 * ng, 0);
-      end = t2 + gap * 2;
-      say(
-        "Sound key. The instrument is a " +
-          nm +
-          ". Eight notes from the lowest value on the legend to the highest." +
-          (S.invert
-            ? " Pitch is flipped: higher values are lower notes."
-            : " Higher values are higher notes.") +
-          " Then a quiet and a loud note: louder means a stronger value." +
-          unp +
-          " " +
-          sc +
-          " A second, slightly clashing note means warmer or wetter than this place usually is. A silence means no data or no signal. Sound in your left ear is west, right ear is east." +
-          pz,
-        true,
-      );
-    } else {
-      var R = C.grid.rows;
-      for (i = R - 1; i >= 0; i--) {
-        setMood((R - 1 - i) / (R - 1));
-        voice(midiToHz(pitchFor(i)), t + (R - 1 - i) * gap, kt, 0.25 * ng, 0);
-        guide(t + (R - 1 - i) * gap, (R - 1 - i) / (R - 1));
-      }
-      var t3 = t + R * gap + 0.6;
-      setMood(0.5);
-      voice(midiToHz(pitchFor(4)), t3, kt, 0.1 * ng, 0);
-      voice(midiToHz(pitchFor(4)), t3 + gap * 2, kt, 0.45 * ng, 0);
-      voice(midiToHz(pitchFor(4)), t3 + gap * 4, "bell", 0.3, 0);
-      end = t3 + gap * 4;
-      say(
-        "Sound key. The instrument is a " +
-          nm +
-          ". First, notes rising from south to north, low to high. Then a quiet note for a weak value, a loud note for a strong value, and a bell for snow." +
-          unp +
-          " " +
-          sc +
-          " Under the notes, the strongest signal sets the texture." +
-          (S.target === "chord"
-            ? " In chord view, one note sounds for each band, the strongest place in that band, panned to where it is."
-            : "") +
-          pz,
-        true,
-      );
+    for (i = 0; i < n; i++) {
+      setMood(i / (n - 1));
+      voice(midiToHz(pitchForNorm(i / (n - 1))), t + i * gap, kt, 0.25 * ng, 0);
+      guide(t + i * gap, i / (n - 1));
     }
+    var t2 = t + n * gap + 0.6;
+    setMood(0.5);
+    voice(midiToHz(pitchForNorm(0.5)), t2, kt, 0.1 * ng, 0);
+    voice(midiToHz(pitchForNorm(0.5)), t2 + gap * 2, kt, 0.45 * ng, 0);
+    end = t2 + gap * 2;
+    say(
+      "Sound key. The instrument is a " +
+        nm +
+        ". Eight notes from the lowest value on the legend to the highest." +
+        (S.invert
+          ? " Pitch is flipped: higher values are lower notes."
+          : " Higher values are higher notes.") +
+        " Then a quiet and a loud note: louder means a stronger value." +
+        unp +
+        " " +
+        sc +
+        " A second, slightly clashing note means warmer or wetter than this place usually is. A silence means no data or no signal. Sound in your left ear is west, right ear is east." +
+        pz,
+      true,
+    );
     S.keyBusy = true;
     setTimeout(
       function () {
@@ -1729,98 +1339,15 @@
     );
   }
   /* ===== REGION 7: DESCRIPTION ===== */
-  function bandText(b, tiles) {
-    var cols = C.grid.cols,
-      valid = 0,
-      wet = [],
-      types = {};
-    for (var r = b.rowStart; r < b.rowEnd; r++)
-      for (var c = 0; c < cols; c++) {
-        var t = tiles[r * cols + c];
-        if (t.value === null) continue;
-        valid++;
-        if (wetTile(t)) {
-          wet.push(t);
-          types[t.type] = (types[t.type] || 0) + 1;
-        }
-      }
-    if (!valid) return "no data";
-    if (!wet.length) return "dry";
-    var top = wet.reduce(function (a, t) {
-      return t.norm > a.norm ? t : a;
-    });
-    var kind = Object.keys(types).sort(function (a, b2) {
-      return types[b2] - types[a];
-    })[0];
-    var level = top.norm < 0.33 ? "low" : top.norm < 0.66 ? "middle" : "high";
-    return (
-      Math.round((wet.length / valid) * 100) +
-      " percent has signal, mostly " +
-      kind +
-      ", strongest is " +
-      level +
-      " near " +
-      lonText(top.col)
-    );
-  }
-  function describe(tiles) {
-    return (
-      "At " +
-      S.video.currentTime.toFixed(0) +
-      " seconds. " +
-      C.bands
-        .map(function (b) {
-          return b.name + ": " + bandText(b, tiles) + ".";
-        })
-        .join(" ")
-    );
-  }
   function spotLine(t) {
     var where = S.spot.name + ", " + spotWhere();
     if (!t || t.value === null)
       return where + ": no data here. It may be land, or outside the map.";
     if (!wetTile(t)) return where + ": no signal here at this moment.";
     var L = legendFor(t);
-    return (
-      where +
-      ": " +
-      (L ? L.spec.label : "value") +
-      " about " +
-      fmt(t.value) +
-      "." +
-      (currentInstr() === "guitar"
-        ? " Guitar chord: " + chordForStep(indexForNorm(t.norm)).say + "."
-        : "")
-    );
+    return where + ": " + (L ? L.spec.label : "value") + " about " + fmt(t.value) + ".";
   }
-  function updateTable(tiles) {
-    $("bandTable").innerHTML = C.bands
-      .map(function (b) {
-        return (
-          "<tr><th scope='row'>" +
-          b.name +
-          "</th><td>" +
-          bandText(b, tiles) +
-          "</td></tr>"
-        );
-      })
-      .join("");
-    var wet = 0,
-      nodata = 0;
-    tiles.forEach(function (t) {
-      if (t.value === null) nodata++;
-      else if (wetTile(t)) wet++;
-    });
-    $("stats").textContent =
-      "Tiles with signal: " +
-      wet +
-      " of " +
-      tiles.length +
-      ". No-data tiles: " +
-      nodata +
-      ".";
-  }
-  /* Spoken summary when the video ends: what the sound did at this place. */
+    /* Spoken summary when the video ends: what the sound did at this place. */
   function finishText() {
     var base = "Finished. ";
     if (S.target !== "spot") return base + "Press Play to hear it again.";
@@ -1896,72 +1423,24 @@
       h: SPOT_DEG / 180,
     };
   }
-  function markVideo(hc) {
-    var cr = S.crop,
-      cols = C.grid.cols,
-      rows = C.grid.rows,
-      b = S.active;
-    function put(id, x, y, w, h, on) {
-      var el = $(id);
-      el.style.display = on ? "block" : "none";
-      el.style.left = x * 100 + "%";
-      el.style.top = y * 100 + "%";
-      el.style.width = w * 100 + "%";
-      el.style.height = h * 100 + "%";
-    }
-    if (S.target === "spot") {
-      var sb = spotBox();
-      put(
-        "vcol",
-        cr.x + sb.x * cr.w,
-        cr.y + sb.y * cr.h,
-        sb.w * cr.w,
-        sb.h * cr.h,
-        true,
-      );
-      put("vtop", 0, 0, 0, 0, false);
-      put("vbot", 0, 0, 0, 0, false);
-      return;
-    }
-    put(
-      "vcol",
-      cr.x + ((hc || 0) / cols) * cr.w,
-      cr.y,
-      cr.w / cols,
-      cr.h,
-      false, // the smooth sweep line (sweepLoop) replaces the per-tile box
-    );
-    put(
-      "vtop",
-      cr.x,
-      cr.y,
-      cr.w,
-      b ? (b.rowStart / rows) * cr.h : 0,
-      !!b && b.rowStart > 0,
-    );
-    put(
-      "vbot",
-      cr.x,
-      cr.y + (b ? b.rowEnd / rows : 1) * cr.h,
-      cr.w,
-      b ? (1 - b.rowEnd / rows) * cr.h : 0,
-      !!b && b.rowEnd < rows,
-    );
+  /* The yellow box on the source video that shows where the spot is. */
+  function markVideo() {
+    var cr = S.crop, sb = spotBox(), el = $("vcol");
+    el.style.display = "block";
+    el.style.left = (cr.x + sb.x * cr.w) * 100 + "%";
+    el.style.top = (cr.y + sb.y * cr.h) * 100 + "%";
+    el.style.width = sb.w * cr.w * 100 + "%";
+    el.style.height = sb.h * cr.h * 100 + "%";
   }
-  function drawMap(tiles, hc) {
-    var cv = $("map"),
-      cs = 64,
-      cols = C.grid.cols,
-      rows = C.grid.rows,
-      mapMode = mapLike();
+  function drawMap(tiles) {
+    var cv = $("map"), cs = 64, cols = C.grid.cols, rows = C.grid.rows;
     cv.width = cols * cs;
     cv.height = rows * cs;
     var g = cv.getContext("2d");
     g.fillStyle = "#000";
     g.fillRect(0, 0, cv.width, cv.height);
     tiles.forEach(function (t) {
-      var x = t.col * cs,
-        y = t.row * cs;
+      var x = t.col * cs, y = t.row * cs;
       if (t.value === null) return;
       if (t.norm === undefined) {
         g.strokeStyle = "#444";
@@ -1975,51 +1454,26 @@
         g.fillRect(x + cs / 2 - 3, y + cs / 2 - 3, 6, 6);
       }
     });
-    if (mapMode && S.active) {
-      g.fillStyle = "rgba(0,0,0,0.65)";
-      g.fillRect(0, 0, cv.width, S.active.rowStart * cs);
-      g.fillRect(
-        0,
-        S.active.rowEnd * cs,
-        cv.width,
-        cv.height - S.active.rowEnd * cs,
-      );
-    }
-    if (mapMode) {
-      g.strokeStyle = "#fff";
-      g.lineWidth = 3;
-      C.bands.forEach(function (b) {
-        g.beginPath();
-        g.moveTo(0, b.rowStart * cs);
-        g.lineTo(cv.width, b.rowStart * cs);
-        g.stroke();
-      });
-      label(g, "NORTH (high notes)", cv.width / 2, 24, "center");
-      label(g, "SOUTH (low notes)", cv.width / 2, cv.height - 24, "center");
-      label(g, "WEST", 8, cv.height / 2, "left");
-      label(g, "EAST", cv.width - 8, cv.height / 2, "right");
-    } else {
-      var b = spotBox(),
-        px = (b.x + b.w / 2) * cv.width,
-        py = (b.y + b.h / 2) * cv.height;
-      g.lineWidth = 11;
-      g.strokeStyle = "#000";
-      g.beginPath();
-      g.arc(px, py, 26, 0, 7);
-      g.stroke();
-      g.lineWidth = 5;
-      g.strokeStyle = S.accent || "#fff";
-      g.beginPath();
-      g.arc(px, py, 26, 0, 7);
-      g.stroke();
-      label(g, S.spot.name, cv.width / 2, 24, "center");
-    }
-    markVideo(hc);
+    var b = spotBox(),
+      px = (b.x + b.w / 2) * cv.width,
+      py = (b.y + b.h / 2) * cv.height;
+    g.lineWidth = 11;
+    g.strokeStyle = "#000";
+    g.beginPath();
+    g.arc(px, py, 26, 0, 7);
+    g.stroke();
+    g.lineWidth = 5;
+    g.strokeStyle = S.accent || "#fff";
+    g.beginPath();
+    g.arc(px, py, 26, 0, 7);
+    g.stroke();
+    label(g, S.spot.name, cv.width / 2, 24, "center");
+    markVideo();
   }
 
   /* ===== REGION 9: PLAYBACK =====
    Every tick reads the frame that is on screen at this moment. Nothing is queued ahead.
-   In sweep view the video is frozen during each sweep and only jumps between sweeps. */
+   */
 
   /* Guided tour: announce each cue once as the video passes its time, and move the spot. */
   function storyList() {
@@ -2043,7 +1497,7 @@
         }).indexOf(cue.place);
         if (k >= 0) {
           S.spot = placeCopy(k);
-          $("place").value = k;
+          S.placeIdx = k;
           S.base.length = 0;
         }
       }
@@ -2061,177 +1515,14 @@
     drawMap(S.tiles);
     glow(wetTile(t) ? t : null);
     $("now").textContent = spotLine(t);
-    updateTable(S.tiles);
-    storyCheck();
-  }
-  /* Sustained glide for the sweep: one voice that slides to each new pitch, so there is never a gap. */
-  function glide(m, norm, pan, pres) {
-    if (!S.pad || !S.ctx) return;
-    var t = S.ctx.currentTime, f = midiToHz(m - 12);
-    S.pad.o.frequency.setTargetAtTime(f, t, 0.12);
-    S.pad.o2.frequency.setTargetAtTime(f, t, 0.12);
-    S.pad.f.frequency.setTargetAtTime(700 + 2200 * norm, t, 0.2);
-    S.pad.g.gain.setTargetAtTime((0.06 + 0.1 * norm) * pres, t, 0.15);
-    S.pad.p.pan.setTargetAtTime(Math.max(-1, Math.min(1, pan)), t, 0.1);
-  }
-  /* Sweep view, smooth. The video is frozen on one frame while a line glides west to east.
-     Each column is split into SWEEP_SUB small steps. Between column centres the readings are blended,
-     so loudness, pitch, pan and texture glide instead of jumping from block to block. A sustained glide
-     voice follows the pitch with no gaps; your instrument plays a note whenever the pitch moves on
-     or NOTE_MS has passed. Silence only happens where the map really has no signal. */
-  function sweepTick() {
-    if (S.video.readyState < 2 || S.video.seeking) return;
-    var cols = C.grid.cols, rows = C.grid.rows, total = cols * SWEEP_SUB,
-      len = C.scale.length * OCTAVES, k = S.sub, r, i;
-    S.sw = { k: k, t: performance.now() };
-    if (k === 0) {
-      S.active = S.mode === "all" ? null : S.mode === "cycle" ? C.bands[S.beat % C.bands.length] : C.bands[+S.mode];
-      $("now").textContent = "Listening to: " + (S.active ? S.active.name : "all bands") + " at " + S.video.currentTime.toFixed(0) + " seconds";
-      S.tiles = analyze();
-      S.col = -1;
-      S.gap = 0;
-      storyCheck();
-    }
-    var x = (k + 0.5) / SWEEP_SUB, cf = x - 0.5,
-      c0 = Math.max(0, Math.min(cols - 1, Math.floor(cf))),
-      c1 = Math.min(cols - 1, c0 + 1),
-      f = Math.max(0, Math.min(1, cf - c0)),
-      col = Math.min(cols - 1, Math.floor(x)),
-      pan = FLIP * (((k + 0.5) / total) * 2 - 1) * PAN,
-      rr = new Array(rows).fill(0), cand = [],
-      sw = 0, sr = 0, sn = 0, sv = 0, best = null, bs = 0;
-    for (r = 0; r < rows; r++) {
-      if (!inBand(r)) continue;
-      var a = S.tiles[r * cols + c0], b = S.tiles[r * cols + c1],
-        wa = wetTile(a) ? 1 - f : 0, wb = wetTile(b) ? f : 0, p = wa + wb;
-      if (p <= 0) continue;
-      var nrm = ((wa ? a.norm * wa : 0) + (wb ? b.norm * wb : 0)) / p,
-        val = ((wa ? a.value * wa : 0) + (wb ? b.value * wb : 0)) / p,
-        s = p * nrm, tl = wa >= wb ? a : b, wt = s * s * s;
-      rr[r] = s;
-      var cd = { row: r, s: s, p: p, norm: nrm, value: val, type: tl.type, color: tl.color };
-      cand.push(cd);
-      sw += wt; sr += wt * r; sn += wt * nrm; sv += wt * val;
-      if (s > bs) { bs = s; best = cd; }
-    }
-    if (!best || bs < 0.02 || !sw) {
-      S.gap++;
-      padOff();
-      if (S.gap > SWEEP_SUB) silenceScene(); // short gaps keep the texture, so it never chops
-      glow(null);
-    } else {
-      S.gap = 0;
-      var nn = sn / sw, rowF = sr / sw,
-        stepF = Math.max(0, Math.min(len - 1, ((S.invert ? rowF : rows - 1 - rowF) / (rows - 1)) * (len - 1))),
-        lo = Math.floor(stepF), hi = Math.min(len - 1, lo + 1),
-        midiF = noteFor(lo) + (noteFor(hi) - noteFor(lo)) * (stepF - lo),
-        step = Math.round(stepF), pres = best.p;
-      if (C.sweepGlide !== false) glide(midiF, nn, pan, pres);
-      var now = S.ctx.currentTime, rate = parseFloat($("rate").value) || 1, gapS = NOTE_MS / 1000 / rate;
-      if (notesOn() && (now - S.lastNote >= gapS || (step !== S.lastStep && now - S.lastNote >= gapS * 0.5))) {
-        S.lastNote = now;
-        S.lastStep = step;
-        var when = now + 0.02;
-        setMood(nn);
-        voice(midiToHz(noteFor(step)), when, timbreOf(best), noteLoud({ norm: nn, type: best.type }) * (0.4 + 0.6 * pres), pan);
-        cand.sort(function (u, w) { return w.s - u.s; });
-        var extra = 0;
-        for (i = 0; i < cand.length && extra < MAX_PER_COL - 1; i++) {
-          var es = Math.round(((S.invert ? cand[i].row : rows - 1 - cand[i].row) / (rows - 1)) * (len - 1));
-          if (es === step || cand[i].s < bs * 0.5) continue;
-          voice(midiToHz(noteFor(es)), when, timbreOf(cand[i]), noteLoud(cand[i]) * 0.7, pan);
-          extra++;
-        }
-        pitchGuide(nn);
-      }
-      texture({ norm: nn, value: sv / sw, type: best.type }, pan, SWEEP_MS / total, rr);
-      glow({ color: best.color, norm: nn });
-    }
-    if (col !== S.col) { S.col = col; drawMap(S.tiles, col); }
-    if (k === 0) {
-      drone(planetMean(S.tiles));
-      updateTable(S.tiles);
-      if (S.beat % ANNOUNCE === 0) say(describe(S.tiles));
-    }
-    S.sub = (k + 1) % total;
-    if (!S.sub) { // sweep finished: jump the video forward to the next moment
-      S.beat++;
-      var next = S.video.currentTime + SWEEP_STEP;
-      if (next >= S.video.duration - 0.05) {
-        stop(finishText(), true);
-        return;
-      }
-      S.sw = { k: 0, t: Infinity };
-      S.video.currentTime = next;
-    }
-  }
-  /* Chord view: once a second, the strongest signal in each band sounds together. */
-  function chordTick() {
-    if (S.video.readyState < 2) return;
-    var cols = C.grid.cols,
-      when = S.ctx.currentTime + 0.02,
-      heard = [],
-      strongest = null;
-    S.ticks++;
-    S.tiles = analyze();
-    S.active = null;
-    C.bands.forEach(function (b) {
-      var best = null;
-      for (var r = b.rowStart; r < b.rowEnd; r++)
-        for (var c = 0; c < cols; c++) {
-          var tl = S.tiles[r * cols + c];
-          if (wetTile(tl) && (!best || tl.norm > best.norm)) best = tl;
-        }
-      if (!best) return;
-      heard.push(best);
-      setMood(best.norm);
-      if (!strongest || best.norm > strongest.norm) strongest = best;
-      if (notesOn())
-        voice(
-          midiToHz(pitchFor(best.row)),
-          when,
-          timbreOf(best),
-          noteLoud(best),
-          FLIP * (((best.col + 0.5) / cols) * 2 - 1) * PAN,
-        );
-    });
-    /* texture: the strongest signal anywhere sets the nature sound, panned to where it is; rows = mean of each latitude row */
-    texture(
-      strongest,
-      strongest ? FLIP * (((strongest.col + 0.5) / cols) * 2 - 1) * PAN : 0,
-      CHORD_MS,
-      rowMeans(S.tiles),
-    );
-    drone(planetMean(S.tiles));
-    drawMap(S.tiles);
-    if (strongest) pitchGuide(strongest.norm);
-    glow(strongest);
-    $("now").textContent = heard.length
-      ? "Chord: " +
-        heard.length +
-        " of " +
-        C.bands.length +
-        " bands have signal."
-      : "Silence: no signal anywhere.";
-    updateTable(S.tiles);
-    if ((S.ticks - 1) % ANNOUNCE === 0) say(describe(S.tiles));
     storyCheck();
   }
   function start() {
     initAudio();
-    var rate = parseFloat($("rate").value),
-      mode = S.target,
-      spot = mode === "spot";
+    var rate = parseFloat($("rate").value);
     S.video.playbackRate = rate;
-    if (mode === "map") {
-      // freeze-sweep: the video stays still while a sweep reads it
-      S.video.pause();
-      if (S.video.duration && S.video.currentTime >= S.video.duration - 0.1)
-        S.video.currentTime = 0;
-    } else {
-      var pr = S.video.play();
-      if (pr && pr.catch) pr.catch(function () {});
-    }
+    var pr = S.video.play();
+    if (pr && pr.catch) pr.catch(function () {});
     if (S.video.currentTime < 0.5) {
       S.series = [];
       S.ticks = 0;
@@ -2239,23 +1530,12 @@
       S.base.length = 0;
       S.storyIdx = 0;
     }
-    S.col = 0;
-    S.sub = 0;
-    S.lastNote = -99;
-    S.lastStep = -1;
-    S.gap = 0;
     clearInterval(S.timer);
-    var tick = spot ? spotTick : mode === "chord" ? chordTick : sweepTick;
-    var ms = spot
-      ? SPOT_MS
-      : mode === "chord"
-        ? CHORD_MS
-        : SWEEP_MS / (C.grid.cols * SWEEP_SUB);
-    tick();
-    S.timer = setInterval(tick, ms / rate);
+    spotTick();
+    S.timer = setInterval(spotTick, SPOT_MS / rate);
     $("play").innerHTML = PAUSE;
     document.body.classList.add("running");
-    if (spot) say("Playing. Listening to " + S.spot.name + ".");
+    say("Playing. Listening to " + S.spot.name + ".");
   }
   /* soft = let the last notes ring out (used when the video ends) */
   function stop(msg, soft) {
@@ -2373,7 +1653,7 @@
       }).indexOf(p.place);
       if (k >= 0) {
         S.spot = placeCopy(k);
-        $("place").value = k;
+        S.placeIdx = k;
       }
     }
   }
@@ -2444,8 +1724,6 @@
     var cv = $("map");
     cv.getContext("2d").clearRect(0, 0, cv.width, cv.height);
     markVideo();
-    $("stats").textContent = "Not analysed yet.";
-    $("bandTable").innerHTML = "";
     $("now").textContent = "Nothing yet";
     var m = typeof msg === "string" ? msg : "Back at the start. Press Play.";
     if (S.loaded && S.view === "play") preview(m);
@@ -2458,7 +1736,6 @@
         S.tiles = analyze();
         S.sample = sampleSpot();
         drawMap(S.tiles);
-        updateTable(S.tiles);
       } catch (e) {}
       $("now").textContent =
         S.target === "spot"
@@ -2563,6 +1840,7 @@
       say("Loading video.");
       await loadVideo(file ? URL.createObjectURL(file) : url, !!file);
       prepAnalysis();
+      setVideoAspect();
       S.loaded = true;
       refreshInstrument();
       $("play").disabled = false;
@@ -2577,14 +1855,13 @@
     }
   }
 
-  /* ===== REGION 10b: INSTRUMENT SWITCHER =====
-     Press I (or click an icon) to change instrument during play. Each switch sounds the
-     middle note of the range, so you hear the new voice at once. */
-  var ORDER = ["pluck", "bell", "sparkle", "harp", "xylophone", "flute", "piano", "guitar", "violin", "accordion", "drum", "windchime", "rainstick"];
+  /* ===== REGION 10b: INSTRUMENT BUTTON =====
+     One button shows the current instrument. Click it or press I for the next one, Shift+I for the
+     previous one. Each switch sounds the middle note, so you hear the new voice at once. */
+  var ORDER = ["pluck", "bell", "sparkle", "harp", "xylophone", "flute", "piano", "accordion"];
   var INSTR_LABEL = {
     pluck: "Pluck", bell: "Bell", sparkle: "Sparkle", harp: "Harp", xylophone: "Xylophone", flute: "Flute",
-    piano: "Piano", guitar: "Guitar", violin: "Violin", accordion: "Accordion", drum: "Drum", windchime: "Wind chime", rainstick: "Rainstick",
-    drip: "Drip", ice: "Ice chime",
+    piano: "Piano", accordion: "Accordion", drip: "Drip", ice: "Ice chime",
   };
   /* Read out for screen reader users on every switch. */
   var INSTR_DESC = {
@@ -2595,17 +1872,11 @@
     xylophone: "Bright, hollow wooden bars struck with a mallet.",
     flute: "Breathy, with a gentle vibrato.",
     piano: "Each note blooms into a chord: bright major for higher values, darker minor for lower values.",
-    guitar: "An acoustic guitar playing low chords, one strum per note. Higher values climb from E through F, F sharp and on up, each as major then minor. You hear the root note first, and the chord name is shown on screen.",
-    violin: "A bowed string that swells in, with a gentle vibrato.",
     accordion: "A reedy, shimmering squeezebox with a soft swell.",
-    drum: "Intense, clear beats. Low notes are kick, middle notes are tom and snare, high notes are tom and hi-hat.",
-    windchime: "A quick scatter of metal tubes.",
-    rainstick: "A shower of pebbles. Pitch changes brightness more than height.",
     drip: "A short water drop that falls onto its pitch.",
-ice: "A clear, glassy chime with a high shimmer.",
+    ice: "A clear, glassy chime with a high shimmer.",
   };
-  /* CREATIVE CHOICE: filled, single-colour silhouettes. They take the text colour, so they
-     stay readable in high contrast, and the active one turns the accent yellow. */
+  /* Filled, single-colour silhouettes. They take the accent colour. */
   function svg(inner) {
     return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + inner + "</svg>";
   }
@@ -2615,16 +1886,11 @@ ice: "A clear, glassy chime with a high shimmer.",
     bell: svg('<path d="M12 2a1.5 1.5 0 0 1 1.5 1.5v.6A6 6 0 0 1 18 10v4l2 3v1H4v-1l2-3v-4a6 6 0 0 1 4.5-5.9v-.6A1.5 1.5 0 0 1 12 2zM9.5 19h5a2.5 2.5 0 0 1-5 0z"/>'),
     harp: svg('<path d="M5 2h3c6 0 11 3.5 11 9 0 3.5-1.5 7-3 11h-3c1.5-3.8 3-7 3-10.5C16 7.5 12.5 5 8 5v17H5z"/><rect x="10" y="9" width="1.4" height="9" rx=".7"/><rect x="13" y="12" width="1.4" height="6" rx=".7"/>'),
     xylophone: svg('<rect x="1.5" y="3.5" width="3" height="17" rx="1.2"/><rect x="6" y="5" width="3" height="14" rx="1.2"/><rect x="10.5" y="6.5" width="3" height="11" rx="1.2"/><rect x="15" y="8" width="3" height="8" rx="1.2"/><rect x="19.5" y="9.5" width="3" height="5" rx="1.2"/>'),
-    violin: svg('<g transform="rotate(-35 12 12)"><rect x="11.2" y="1.5" width="1.6" height="9"/><circle cx="12" cy="1.8" r="1.4"/><circle cx="12" cy="12.6" r="3.1"/><circle cx="12" cy="18.2" r="4"/><rect x="10" y="12.5" width="4" height="6"/></g>'),
     accordion: svg('<rect x="1" y="5" width="5" height="14" rx="1.2"/><rect x="18" y="5" width="5" height="14" rx="1.2"/><rect x="7.4" y="6.5" width="1.6" height="11" rx=".8"/><rect x="9.8" y="6.5" width="1.6" height="11" rx=".8"/><rect x="12.2" y="6.5" width="1.6" height="11" rx=".8"/><rect x="14.6" y="6.5" width="1.6" height="11" rx=".8"/>'),
     flute: svg('<path fill-rule="evenodd" d="M3 9h18a2 2 0 0 1 0 6H3a2 2 0 0 1 0-6zM7 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0zM11 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0zM15 12m-1 0a1 1 0 1 0 2 0a1 1 0 1 0-2 0z"/>'),
     piano: svg('<path fill-rule="evenodd" d="M3 5h18a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1zM6.5 11h1v8h-1zM10.5 11h1v8h-1zM14.5 11h1v8h-1zM18.5 11h1v8h-1z"/>'),
-    guitar: svg('<g transform="rotate(40 12 12)"><path d="M11 3h2v8h-2z"/><path d="M10.2 1h3.6v2.2h-3.6z"/><path fill-rule="evenodd" d="M12 10c-2.8 0-4.6 1.8-4.6 3.7 0 .9.4 1.5.9 1.8-.5.6-.9 1.3-.9 2.2 0 1.9 2 3.3 4.6 3.3s4.6-1.4 4.6-3.3c0-.9-.4-1.6-.9-2.2.5-.3.9-.9.9-1.8C16.6 11.8 14.8 10 12 10zM12 14.2m-1.4 0a1.4 1.4 0 1 0 2.8 0a1.4 1.4 0 1 0-2.8 0z"/></g>'),
-    drum: svg('<path fill-rule="evenodd" d="M12 8c-5 0-9 1.3-9 3v6c0 1.7 4 3 9 3s9-1.3 9-3v-6c0-1.7-4-3-9-3zm0 1.5c4.1 0 7 .9 7 1.5s-2.9 1.5-7 1.5S5 11.6 5 11s2.9-1.5 7-1.5z"/><path d="M4 2.4 5.2 1.4 11.2 6.6 10 7.6zM20 2.4 18.8 1.4 12.8 6.6 14 7.6z"/>'),
-    windchime: svg('<path d="M3 2h18v2H3z"/><rect x="5" y="6" width="3" height="10" rx="1.5"/><rect x="10.5" y="6" width="3" height="14" rx="1.5"/><rect x="16" y="6" width="3" height="8" rx="1.5"/>'),
-    rainstick: svg('<g transform="rotate(-35 12 12)"><rect x="1" y="8.5" width="22" height="6" rx="3"/></g><circle cx="7" cy="21.2" r="1.3"/><circle cx="12" cy="22" r="1.3"/><circle cx="17" cy="20.5" r="1.3"/>'),
     drip: svg('<path d="M12 2s-7 8-7 13a7 7 0 0 0 14 0c0-5-7-13-7-13z"/>'),
-ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
+    ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
   };
   function defaultInstr() {
     var sp = isUpload() ? S.legends[0] && S.legends[0].spec : (ITEMS[S.idx].legends || [])[0];
@@ -2635,24 +1901,17 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     return S.instr || defaultInstr();
   }
   function refreshInstrument() {
-    var cur = currentInstr(),
-      nm = $("instName"),
-      cn = $("chordName");
+    var cur = currentInstr(), b = $("instBtn");
     chanLabel("notes", "Notes: " + (INSTR_LABEL[cur] || cur));
-    if (cn && cur !== "guitar") cn.textContent = "";
-    document.querySelectorAll("#instBar .inst").forEach(function (b) {
-      var on = b.dataset.k === cur;
-      b.classList.toggle("on", on);
-      b.setAttribute("aria-pressed", on ? "true" : "false");
-    });
-    if (nm) nm.textContent = "Instrument: " + (INSTR_LABEL[cur] || cur) + ". Press I for the next one, Shift and I for the previous.";
+    if (!b) return;
+    b.querySelector(".ico").innerHTML = ICONS[cur] || "";
+    b.querySelector(".pv").textContent = INSTR_LABEL[cur] || cur;
+    b.setAttribute("aria-label", "Instrument: " + (INSTR_LABEL[cur] || cur) + ". Press to change, or press I.");
   }
-  /* CREATIVE CHOICE: the pitch guide. The active icon rises as the note rises (and pulses on
-     every hit) and a dot slides along a Low to High track. Sighted listeners can see the
-     pitch the ear is hearing. The dot follows pitch, so Flip pitch reverses it too. */
+  /* The pitch guide: the instrument icon rises with the note and pulses on every hit, and a dot
+     slides along a Low to High track. The dot follows pitch, so flipping pitch reverses it too. */
   function pitchGuide(norm) {
-    var dot = $("pitchDot"),
-      on = document.querySelector("#instBar .inst.on");
+    var dot = $("pitchDot"), on = $("instBtn");
     if (!dot) return;
     var n = Math.max(0, Math.min(1, S.invert ? 1 - norm : norm));
     dot.style.left = n * 100 + "%";
@@ -2668,52 +1927,27 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     S.instr = k;
     refreshInstrument();
     var L = S.legends[0],
-      ng = (L && (NOTE_GAIN[L.spec.type] || NOTE_GAIN["default"])) || 1,
-      mid = S.target === "spot" ? pitchForNorm(0.5) : pitchFor(4);
+      ng = (L && (NOTE_GAIN[L.spec.type] || NOTE_GAIN["default"])) || 1;
     setMood(0.5);
-    voice(midiToHz(mid), S.ctx.currentTime + 0.03, k, 0.3 * ng, 0); // the middle note
+    voice(midiToHz(pitchForNorm(0.5)), S.ctx.currentTime + 0.03, k, 0.3 * ng, 0); // the middle note
     pitchGuide(0.5);
-    say(
-      "Instrument: " + INSTR_LABEL[k] + ", " + (ORDER.indexOf(k) + 1) + " of " + ORDER.length + ". " + INSTR_DESC[k],
-    );
+    say("Instrument: " + INSTR_LABEL[k] + ", " + (ORDER.indexOf(k) + 1) + " of " + ORDER.length + ". " + INSTR_DESC[k]);
   }
   function nextInstrument() {
     if (S.view !== "play") return;
     setInstrument(ORDER[(ORDER.indexOf(currentInstr()) + 1) % ORDER.length]);
   }
-  /* CREATIVE CHOICE: Shift+I walks the same ring backwards, wrapping at both ends, so any
-     instrument is at most five presses away. */
   function prevInstrument() {
     if (S.view !== "play") return;
     var i = ORDER.indexOf(currentInstr());
     setInstrument(ORDER[(i <= 0 ? ORDER.length : i) - 1]);
   }
+  window.spotNextInstrument = nextInstrument; // ui.js calls these from the I key
   window.spotPrevInstrument = prevInstrument;
-  window.spotNextInstrument = nextInstrument; // ui.js calls this from the I key
-  function buildInstrumentBar() {
-    var bar = $("instBar");
-    if (!bar) return;
-    ORDER.forEach(function (k) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "inst";
-      b.dataset.k = k;
-      b.tabIndex = -1; // keyboard users have the I key
-      b.setAttribute("aria-label", INSTR_LABEL[k]);
-      b.innerHTML = ICONS[k] + "<span>" + INSTR_LABEL[k] + "</span>";
-      b.addEventListener("mousedown", function (e) {
-        e.preventDefault();
-      });
-      b.addEventListener("click", function () {
-        setInstrument(k);
-      });
-      bar.appendChild(b);
-    });
-    refreshInstrument();
-  }
 
-  /* ===== REGION 10c: SCENE LAYER SWITCHER =====
-     Press U (or click a button) to change the scene layer. null = the preset's own layer. */
+  /* ===== REGION 10c: SCENE BUTTON =====
+     One button shows the current scene layer. Click it or press U for the next, Shift+U for the previous.
+     null = the preset's own layer. Hide it all with ui.showScenePicker: false in config.js. */
   function sceneList() {
     var SL = window.SCENE_LAYERS || {};
     return [null, "none"].concat(Object.keys(SL.layers || {}));
@@ -2726,15 +1960,10 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     });
   }
   function refreshScene() {
-    var nm = $("sceneName");
-    document.querySelectorAll("#sceneBar .inst").forEach(function (b) {
-      var on = b.dataset.k === (S.scene === null ? "__own" : S.scene);
-      b.classList.toggle("on", on);
-      b.setAttribute("aria-pressed", on ? "true" : "false");
-    });
-    if (nm)
-      nm.textContent =
-        "Scene layer: " + sceneLabel(S.scene) + ". Press U for the next one, Shift and U for the previous.";
+    var b = $("sceneBtn");
+    if (!b) return;
+    b.querySelector(".pv").textContent = sceneLabel(S.scene);
+    b.setAttribute("aria-label", "Scene layer: " + sceneLabel(S.scene) + ". Press to change, or press U.");
   }
   function setScene(k) {
     initAudio();
@@ -2746,9 +1975,7 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
         k === "none"
           ? "No nature texture, notes only."
           : (window.SceneLayers && SceneLayers.describe(kind)) || "";
-    say(
-      "Scene layer: " + sceneLabel(k) + ", " + (list.indexOf(k) + 1) + " of " + list.length + ". " + desc,
-    );
+    say("Scene layer: " + sceneLabel(k) + ", " + (list.indexOf(k) + 1) + " of " + list.length + ". " + desc);
     /* paused: play the layer for a moment so you can hear it. Playing: the next tick uses it. */
     if (!S.timer && S.ctx && window.SceneLayers && SceneLayers.has(kind)) {
       scene(kind, { norm: 0.6, value: 0, type: "default" }, 0, SPOT_MS, null, 0);
@@ -2758,43 +1985,22 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     } else if (!S.timer && S.ctx) silenceScene();
   }
   function nextScene() {
-    if (S.view !== "play") return;
+    if (S.view !== "play" || !SHOW_SCENE) return;
     var l = sceneList();
     setScene(l[(l.indexOf(S.scene) + 1) % l.length]);
   }
   function prevScene() {
-    if (S.view !== "play") return;
+    if (S.view !== "play" || !SHOW_SCENE) return;
     var l = sceneList(),
       i = l.indexOf(S.scene);
     setScene(l[(i <= 0 ? l.length : i) - 1]);
   }
   window.spotNextScene = nextScene;
   window.spotPrevScene = prevScene;
-  function buildSceneBar() {
-    var bar = $("sceneBar");
-    if (!bar) return;
-    sceneList().forEach(function (k) {
-      var b = document.createElement("button");
-      b.type = "button";
-      b.className = "inst";
-      b.dataset.k = k === null ? "__own" : k;
-      b.tabIndex = -1; // keyboard users have the U key
-      b.setAttribute("aria-label", sceneLabel(k));
-      b.innerHTML = "<span>" + sceneLabel(k) + "</span>";
-      b.addEventListener("mousedown", function (e) {
-        e.preventDefault();
-      });
-      b.addEventListener("click", function () {
-        setScene(k);
-      });
-      bar.appendChild(b);
-    });
-    refreshScene();
-  }
 
-  /* ===== REGION 10d: SCALE (major or minor pentatonic) =====
+  /* ===== REGION 10d: SCALE BUTTON (major or minor pentatonic) =====
      Both have five notes per octave, so every note sits in key and nothing clashes.
-     Major pentatonic is open and bright. Minor pentatonic is darker and more inward. */
+     Click the button or press C to switch. */
   var SCALES = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
   var SCALE_LABEL = { major: "Major pentatonic", minor: "Minor pentatonic" };
   var SCALE_DESC = { major: "Open and bright.", minor: "Darker and more inward." };
@@ -2802,10 +2008,10 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
   if (!SCALES[S.scaleName]) S.scaleName = "major";
   C.scale = SCALES[S.scaleName].slice();
   function refreshScaleUI() {
-    [["major", "scaleMajor"], ["minor", "scaleMinor"]].forEach(function (p) {
-      var b = $(p[1]);
-      if (b) b.setAttribute("aria-pressed", S.scaleName === p[0] ? "true" : "false");
-    });
+    var b = $("scaleBtn");
+    if (!b) return;
+    b.querySelector(".pv").textContent = SCALE_LABEL[S.scaleName];
+    b.setAttribute("aria-label", "Scale: " + SCALE_LABEL[S.scaleName] + ". Press to change, or press C.");
   }
   function setScale(k) {
     initAudio();
@@ -2828,16 +2034,29 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     setScale(S.scaleName === "major" ? "minor" : "major");
   }
   window.spotToggleScale = toggleScale; // ui.js calls this from the C key
-  function buildScaleButtons() {
-    $("scaleMajor").addEventListener("click", function () { setScale("major"); });
-    $("scaleMinor").addEventListener("click", function () { setScale("minor"); });
+
+  /* The three picker buttons: click = next. Mouse clicks never take focus, so Space always means play. */
+  function buildPickers() {
+    [["instBtn", nextInstrument], ["sceneBtn", nextScene], ["scaleBtn", toggleScale]].forEach(function (p) {
+      var b = $(p[0]);
+      b.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+      });
+      b.addEventListener("click", function () {
+        p[1]();
+      });
+    });
+    refreshInstrument();
+    refreshScene();
     refreshScaleUI();
   }
 
   /* ===== REGION 11: PAGE CONTROLS ===== */
-  function setTargetUI() {
-    $("spotOpts").hidden = S.target !== "spot";
-    $("mapOpts").hidden = S.target !== "map";
+  /* The video wrapper takes the video's own shape, so it fits the screen with no bars and no scrolling. */
+  function setVideoAspect() {
+    var v = S.video,
+      r = v.videoWidth && v.videoHeight ? v.videoWidth / v.videoHeight : 2;
+    document.documentElement.style.setProperty("--vr", r.toFixed(4));
   }
   /* The spot changed. While paused: redraw and play one note so you hear what is there. While playing: next tick uses it. */
   function moveSpot() {
@@ -2860,14 +2079,18 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     lat = Math.round(Math.max(-85, Math.min(85, lat)));
     lon = Math.round(((((lon + 180) % 360) + 360) % 360) - 180);
     S.spot = { name: nameFor(lat, lon), lat: lat, lon: lon };
-    var pl = $("place");
-    pl.value = "custom";
-    var o = pl.querySelector("option[value=custom]");
-    if (o) o.textContent = "Moved: " + S.spot.name;
     moveSpot();
   }
+  /* N / Shift+N: jump to the next or previous named place from config.js. */
+  function nextPlace(d) {
+    if (S.view !== "play" || !S.loaded || !PLACES.length) return;
+    S.placeIdx = (S.placeIdx + d + PLACES.length) % PLACES.length;
+    S.spot = placeCopy(S.placeIdx);
+    moveSpot();
+  }
+  window.spotNextPlace = nextPlace; // ui.js calls this from the N key
   function pickAt(ev, el, isVideo) {
-    if (S.target !== "spot" || !S.loaded) return;
+    if (!S.loaded) return;
     var r = el.getBoundingClientRect(),
       fx = (ev.clientX - r.left) / r.width,
       fy = (ev.clientY - r.top) / r.height;
@@ -2889,28 +2112,10 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
       showItem(+this.value);
     });
 
-    var pl = $("place");
-    PLACES.forEach(function (p, i) {
-      var o = document.createElement("option");
-      o.value = i;
-      o.textContent = p.name;
-      pl.appendChild(o);
-    });
-    var oc = document.createElement("option");
-    oc.value = "custom";
-    oc.textContent = "Custom spot (moved)";
-    pl.appendChild(oc);
-    pl.addEventListener("change", function () {
-      if (this.value === "custom") return;
-      S.spot = placeCopy(+this.value);
-      moveSpot();
-    });
-
-    mixLoop();
-    sweepLoop();
-    buildInstrumentBar();
-    buildSceneBar();
-    buildScaleButtons();
+    $("mixer").hidden = !SHOW_MIXER;
+    $("sceneBtn").hidden = !SHOW_SCENE;
+    if (SHOW_MIXER) mixLoop();
+    buildPickers();
     buildFlow();
     showItem(0, true);
 
@@ -2957,41 +2162,7 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
       S.loaded = false;
       $("play").disabled = true;
     });
-    Object.keys(C.info || {}).forEach(function (k) {
-      var el = $("info-" + k);
-      if (el && C.info[k] === false) el.hidden = true;
-    });
 
-    var ms = $("mode");
-    ms.innerHTML =
-      "<option value='cycle'>One band at a time (cycle)</option><option value='all'>All bands together</option>" +
-      C.bands
-        .map(function (b, i) {
-          return "<option value='" + i + "'>" + b.name + " only</option>";
-        })
-        .join("");
-    ms.value = S.mode;
-    ms.addEventListener("change", function () {
-      S.mode = this.value;
-      resetPlayback();
-    });
-    $("target").value = S.target;
-    setTargetUI();
-    $("target").addEventListener("change", function () {
-      S.target = this.value;
-      setTargetUI();
-      resetPlayback();
-    });
-    $("invert").checked = S.invert;
-    $("invert").addEventListener("change", function () {
-      S.invert = this.checked;
-      resetPlayback();
-    });
-    $("notes").value = MAX_PER_COL;
-    $("notes").addEventListener("change", function () {
-      MAX_PER_COL = Math.max(1, +this.value || 1);
-      resetPlayback();
-    });
     var sk = $("seek");
     S.video.addEventListener("timeupdate", function () {
       if (S.video.duration)
@@ -3008,7 +2179,7 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     $("key").addEventListener("click", soundKey);
     $("describe").addEventListener("click", function () {
       if (!S.tiles) return say("Nothing analysed yet. Press Play.");
-      say(S.target === "spot" ? spotLine(S.sample) : describe(S.tiles));
+      say(spotLine(S.sample));
     });
     $("volume").addEventListener("input", function () {
       if (S.master) S.master.gain.value = parseFloat(this.value);
@@ -3046,7 +2217,7 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
       /* In the player the four arrow keys ALWAYS move the marker, whatever has focus (sliders included). */
       if (S.view === "play" && e.key.indexOf("Arrow") === 0 && !typing) {
         e.preventDefault();
-        if (S.target === "spot" && S.loaded) {
+        if (S.loaded) {
           var dx = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0,
             dy = e.key === "ArrowUp" ? 1 : e.key === "ArrowDown" ? -1 : 0;
           setSpot(S.spot.lat + dy * SPOT_STEP, S.spot.lon + dx * SPOT_STEP);
@@ -3055,7 +2226,6 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
       }
       if (tg === "INPUT" || typing) return;
       if (S.view === "play" && (e.key === "," || e.key === ".")) {
-        // seeking moved here from the arrows
         if (S.loaded) {
           S.video.currentTime = Math.max(
             0,

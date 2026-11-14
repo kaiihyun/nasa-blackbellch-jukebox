@@ -71,10 +71,10 @@ window.SCENE_LAYERS = {
 
   /* data type (config.js legend type)  ->  layer name */
     byType: {
-    liquid: "kenanRain",
-    frozen: "kenanSnow",
-    temperature: "kenanHeat",
-    seatemperature: "kenanSea",
+    liquid: "rain",
+    frozen: "snow",
+    temperature: "heat",
+    seatemperature: "sea",
     carbon_monoxide: "smoke",
     ozone: "air",
     nitrogen_oxide: "city",
@@ -115,8 +115,8 @@ window.SCENE_LAYERS = {
   layers: {
     /* ---------- ready-made layers ---------- */
 
-    /* ---------- Kenan's layers (values copied from kenan-maps.js) ---------- */
-    kenanHeat: {
+    /* ---------- rain, snow, heat and sea (the sea layer is the swell for sea temperature) ---------- */
+    heat: {
       describe: "Heat: a buzzing pad that brightens as it gets hotter, with glassy chimes.",
       pad:   { on:true, wave:"sawtooth", gain:0.05, octave:-1, cutoff:[200,2800], detune:[4,30] },
       drops: { on:true, kind:"ice", gain:1, octave:2, tempo:[64,128], density:0.45 },
@@ -125,7 +125,7 @@ window.SCENE_LAYERS = {
       params: { level: 0.03 },
       custom: function (env, P) { return kenanDrone(env, P); }
     },
-    kenanSea: {
+    sea: {
       describe: "Ocean: a soft, deep swell with shimmering chimes. Warmer means faster, brighter.",
       pad:   { on:true, wave:"triangle", gain:0.05, octave:-1, cutoff:[150,1800], detune:[3,14] },
       drops: { on:true, kind:"ice", gain:1, octave:2, tempo:[52,96], density:0.45 },
@@ -134,7 +134,7 @@ window.SCENE_LAYERS = {
       params: { level: 0.03 },
       custom: function (env, P) { return kenanDrone(env, P); }
     },
-    kenanRain: {
+    rain: {
       describe: "Rain: drips and a wash, with a low rumble under heavy rain.",
       pad:   { on:true, wave:"sawtooth", gain:0.03, octave:-1, cutoff:[90,350], detune:[2,6] },
       drops: { on:true, kind:"drip", gain:1, octave:1, tempo:[66,120], density:0.45 },
@@ -143,7 +143,7 @@ window.SCENE_LAYERS = {
       params: { level: 0.03 },
       custom: function (env, P) { return kenanDrone(env, P); }
     },
-    kenanSnow: {
+    snow: {
       describe: "Snow: soft, muffled chimes and a hush.",
       pad:   { on:true, wave:"triangle", gain:0.035, octave:-1, cutoff:[100,500], detune:[2,6] },
       drops: { on:true, kind:"ice", gain:0.6, octave:2, tempo:[48,84], density:0.45 },
@@ -152,42 +152,6 @@ window.SCENE_LAYERS = {
       params: { level: 0.03 },
       custom: function (env, P) { return kenanDrone(env, P); }
     },
-    rain: {
-      describe:
-        "Rain: more drops and a brighter wash mean heavier rain. Silence means no rain.",
-      drops: { on: true, kind: "drip", gain: 0.6, tempo: [60, 140] },
-      hiss: { on: true, type: "bandpass", gain: 0.2, freq: [2500, 5000] },
-      reverb: 0.45,
-    },
-
-    snow: {
-      describe:
-        "Snow: soft glassy chimes and a hush. More chimes mean heavier snow.",
-      drops: {
-        on: true,
-        kind: "ice",
-        gain: 0.5,
-        tempo: [40, 90],
-        density: 0.3,
-      },
-      hiss: { on: true, type: "bandpass", gain: 0.08, freq: [1500, 3000] },
-      reverb: 0.6,
-    },
-
-    heat: {
-      describe:
-        "Wind: cold is low and breathy. Hot is a bright, buzzing, thin shimmer.",
-      pad: {
-        on: true,
-        wave: "sawtooth",
-        gain: 0.05,
-        cutoff: [300, 3000],
-        detune: [0, 25],
-      },
-      hiss: { on: true, type: "highpass", gain: 0.06, freq: [3000, 6000] },
-      reverb: 0.25,
-    },
-
     ocean: {
       describe: "Ocean swell: warmer water means faster, brighter waves.",
       pad: {
