@@ -137,8 +137,21 @@ dialog .btn{margin-top:var(--gap)}
 .mixmute[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}
 @media (max-width:600px){.mixrow{grid-template-columns:1fr auto}.mixspec{grid-column:1/-1;order:3}}
 
+/* smooth sweep line (sweep view only) */
+.mapwrap{position:relative}
+.sline{position:absolute;display:none;width:4px;margin-left:-2px;background:#fff;
+  box-shadow:0 0 12px 3px var(--pulse);pointer-events:none;z-index:2}
+.sline::before{content:"";position:absolute;right:100%;top:0;bottom:0;width:60px;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22))}
+#mline{top:0;height:100%}
+
 @media (max-width:900px){
   .panel{grid-template-columns:1fr}
   .stage,.rail{grid-column:1}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* scale buttons: the chosen one turns accent yellow */
+.lbl{margin-top:12px;font-weight:600}
+.scalebar{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.scalebar .btn[aria-pressed="true"]{background:var(--accent);color:var(--on-accent);border-color:var(--accent)}

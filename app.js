@@ -31,6 +31,8 @@
   var SWEEP_STEP = C.sweepStepSec || 1.5;
   var CHORD_MS = C.chordMs || 1000;
   var MAX_PER_COL = C.maxNotesPerColumn || 2;
+  var SWEEP_SUB = C.sweepSub || 4; // small steps per column in the sweep: more = smoother
+  var NOTE_MS = C.sweepNoteMs || 450; // sweep view: longest wait between instrument notes
   var LOW_MIDI = C.lowMidi || 48;
   var OCTAVES = C.octaves || 3;
   var ANNOUNCE = C.announceEveryBeats || 4;
@@ -103,6 +105,8 @@
     scene: null, // scene layer chosen with the U key; null = the preset's own layer
     mood: 1, // 1 = major (bright), 0 = minor (dark): set from the data before each chord note
     keyBusy: false, // true while the sound key is playing
+    sw: null, // sweep view: { k, t } = the sub-step the engine last played and when (read by sweepLoop)
+    sub: 0, lastNote: -99, lastStep: -1, gap: 0, // sweep view bookkeeping
   };
 
   /* ===== MIXER: one channel per sound layer, each with a spectrum tap and a mute ===== */
@@ -175,6 +179,27 @@
       }
     });
     $("mixEmpty").hidden = any;
+  }
+
+  /* Smooth sweep line: moves every animation frame between the engine's column ticks. */
+  function sweepLoop() {
+    requestAnimationFrame(sweepLoop);
+    var v = $("vline"), m = $("mline");
+    if (!v || !m) return;
+    var on = S.target === "map" && S.timer && S.sw &&
+             document.body.classList.contains("playing");
+    v.style.display = m.style.display = on ? "block" : "none";
+    if (!on) return;
+    var rate = parseFloat($("rate").value) || 1,
+        total = C.grid.cols * SWEEP_SUB,
+        tickMs = SWEEP_MS / total / rate,
+        f = Math.max(0, Math.min(1, (performance.now() - S.sw.t) / tickMs)),
+        pos = Math.min(1, (S.sw.k + 0.5 + f) / total),
+        cr = S.crop;
+    m.style.left = pos * 100 + "%";
+    v.style.left = (cr.x + pos * cr.w) * 100 + "%";
+    v.style.top = cr.y * 100 + "%";
+    v.style.height = cr.h * 100 + "%";
   }
 
   /* ===== REGION 2: HELPERS ===== */
@@ -823,6 +848,28 @@
       g.gain.exponentialRampToValueAtTime(v * 0.8, t + 0.004);
       g.gain.exponentialRampToValueAtTime(0.0008, t + 1.4);
     },
+    /* CREATIVE CHOICE: sparkle is a glass celesta. Soft bell-like partials (1x, 2x, 4x), a faint
+       glassy overtone, and two tiny grace-note twinkles taken from YOUR current scale, so
+       major sparkles brightly and minor sparkles wistfully. A long reverb send lets it shimmer. */
+    sparkle: function (f, t, v, g) {
+      var c = S.ctx, send = c.createGain(), F = f * 2, j;
+      while (F > 4200) F /= 2;
+      tone("sine", F, 1, t, 2.2, g);
+      tone("sine", F * 2, 0.45, t, 1.4, g);
+      tone("sine", F * 4.01, 0.18, t, 0.8, g);
+      tone("sine", F * 2.76, 0.12, t, 0.5, g);
+      for (j = 0; j < 2; j++) {
+        var fq = F * 2 * Math.pow(2, C.scale[Math.floor(Math.random() * C.scale.length)] / 12);
+        while (fq > 9000) fq /= 2;
+        tone("sine", fq, 0.2 - j * 0.08, t + 0.08 + j * 0.1, 0.6, g);
+      }
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(v * 0.5, t + 0.003);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 2.4);
+      send.gain.value = 0.9;
+      g.connect(send);
+      send.connect(S.conv);
+    },
     harp: function (f, t, v, g) {
       var c = S.ctx,
         fl = c.createBiquadFilter(),
@@ -1270,7 +1317,7 @@
   }
   /* The guitar's chord ladder: 12 roots from low E (E2) up by semitones, each as Major then
      Minor, 24 chords. A note step (0 to 14) is spread across the ladder. */
-  var ROOT_SHOW = ["E", "F", "F\u266F/G\u266D", "G", "G\u266F/A\u266D", "A", "A\u266F/B\u266D", "B", "C", "C\u266F/D\u266D", "D", "D\u266F/E\u266D"];
+  var ROOT_SHOW = ["E", "F", "F♯/G♭", "G", "G♯/A♭", "A", "A♯/B♭", "B", "C", "C♯/D♭", "D", "D♯/E♭"];
   var ROOT_SAY = ["E", "F", "F sharp or G flat", "G", "G sharp or A flat", "A", "A sharp or B flat", "B", "C", "C sharp or D flat", "D", "D sharp or E flat"];
   var LOW_E = 40; // MIDI 40 = E2, the guitar's lowest string
   function stepOfFreq(f) {
@@ -1553,7 +1600,7 @@
   }
 
   var KEY_GAP = {
-    drip: 0.5, ice: 0.5,
+    drip: 0.5, ice: 0.5, sparkle: 0.5,
     harp: 0.6,
     windchime: 1.0,
     piano: 0.45,
@@ -1567,7 +1614,7 @@
     bell: 0.45,
   };
   var INSTR_NAME = {
-    drip: "water drip", ice: "ice chime",
+    drip: "water drip", ice: "ice chime", sparkle: "glass sparkle",
     harp: "dreamy harp",
     windchime: "wind chime",
     piano: "piano",
@@ -1882,7 +1929,7 @@
       cr.y,
       cr.w / cols,
       cr.h,
-      hc !== undefined,
+      false, // the smooth sweep line (sweepLoop) replaces the per-tile box
     );
     put(
       "vtop",
@@ -1947,11 +1994,6 @@
         g.lineTo(cv.width, b.rowStart * cs);
         g.stroke();
       });
-      if (hc !== undefined) {
-        g.strokeStyle = S.accent || "#fff";
-        g.lineWidth = 5;
-        g.strokeRect(hc * cs + 1.5, 1.5, cs - 3, cv.height - 3);
-      }
       label(g, "NORTH (high notes)", cv.width / 2, 24, "center");
       label(g, "SOUTH (low notes)", cv.width / 2, cv.height - 24, "center");
       label(g, "WEST", 8, cv.height / 2, "left");
@@ -2022,66 +2064,104 @@
     updateTable(S.tiles);
     storyCheck();
   }
-  function colTick() {
+  /* Sustained glide for the sweep: one voice that slides to each new pitch, so there is never a gap. */
+  function glide(m, norm, pan, pres) {
+    if (!S.pad || !S.ctx) return;
+    var t = S.ctx.currentTime, f = midiToHz(m - 12);
+    S.pad.o.frequency.setTargetAtTime(f, t, 0.12);
+    S.pad.o2.frequency.setTargetAtTime(f, t, 0.12);
+    S.pad.f.frequency.setTargetAtTime(700 + 2200 * norm, t, 0.2);
+    S.pad.g.gain.setTargetAtTime((0.06 + 0.1 * norm) * pres, t, 0.15);
+    S.pad.p.pan.setTargetAtTime(Math.max(-1, Math.min(1, pan)), t, 0.1);
+  }
+  /* Sweep view, smooth. The video is frozen on one frame while a line glides west to east.
+     Each column is split into SWEEP_SUB small steps. Between column centres the readings are blended,
+     so loudness, pitch, pan and texture glide instead of jumping from block to block. A sustained glide
+     voice follows the pitch with no gaps; your instrument plays a note whenever the pitch moves on
+     or NOTE_MS has passed. Silence only happens where the map really has no signal. */
+  function sweepTick() {
     if (S.video.readyState < 2 || S.video.seeking) return;
-    var cols = C.grid.cols,
-      rows = C.grid.rows,
-      c = S.col,
-      r,
-      col = [];
-    if (c === 0) {
-      S.active =
-        S.mode === "all"
-          ? null
-          : S.mode === "cycle"
-            ? C.bands[S.beat % C.bands.length]
-            : C.bands[+S.mode];
-      $("now").textContent =
-        "Listening to: " +
-        (S.active ? S.active.name : "all bands") +
-        " at " +
-        S.video.currentTime.toFixed(0) +
-        " seconds";
+    var cols = C.grid.cols, rows = C.grid.rows, total = cols * SWEEP_SUB,
+      len = C.scale.length * OCTAVES, k = S.sub, r, i;
+    S.sw = { k: k, t: performance.now() };
+    if (k === 0) {
+      S.active = S.mode === "all" ? null : S.mode === "cycle" ? C.bands[S.beat % C.bands.length] : C.bands[+S.mode];
+      $("now").textContent = "Listening to: " + (S.active ? S.active.name : "all bands") + " at " + S.video.currentTime.toFixed(0) + " seconds";
+      S.tiles = analyze();
+      S.col = -1;
+      S.gap = 0;
       storyCheck();
     }
-    S.tiles = analyze();
+    var x = (k + 0.5) / SWEEP_SUB, cf = x - 0.5,
+      c0 = Math.max(0, Math.min(cols - 1, Math.floor(cf))),
+      c1 = Math.min(cols - 1, c0 + 1),
+      f = Math.max(0, Math.min(1, cf - c0)),
+      col = Math.min(cols - 1, Math.floor(x)),
+      pan = FLIP * (((k + 0.5) / total) * 2 - 1) * PAN,
+      rr = new Array(rows).fill(0), cand = [],
+      sw = 0, sr = 0, sn = 0, sv = 0, best = null, bs = 0;
     for (r = 0; r < rows; r++) {
-      var tl = S.tiles[r * cols + c];
-      if (wetTile(tl) && inBand(r)) col.push(tl);
+      if (!inBand(r)) continue;
+      var a = S.tiles[r * cols + c0], b = S.tiles[r * cols + c1],
+        wa = wetTile(a) ? 1 - f : 0, wb = wetTile(b) ? f : 0, p = wa + wb;
+      if (p <= 0) continue;
+      var nrm = ((wa ? a.norm * wa : 0) + (wb ? b.norm * wb : 0)) / p,
+        val = ((wa ? a.value * wa : 0) + (wb ? b.value * wb : 0)) / p,
+        s = p * nrm, tl = wa >= wb ? a : b, wt = s * s * s;
+      rr[r] = s;
+      var cd = { row: r, s: s, p: p, norm: nrm, value: val, type: tl.type, color: tl.color };
+      cand.push(cd);
+      sw += wt; sr += wt * r; sn += wt * nrm; sv += wt * val;
+      if (s > bs) { bs = s; best = cd; }
     }
-    col.sort(function (a, b) {
-      return b.norm - a.norm;
-    });
-    var pan = FLIP * (((c + 0.5) / cols) * 2 - 1) * PAN,
-      when = S.ctx.currentTime + 0.02;
-    if (notesOn())
-      col.slice(0, MAX_PER_COL).forEach(function (n) {
-        setMood(n.norm);
-        voice(midiToHz(pitchFor(n.row)), when, timbreOf(n), noteLoud(n), pan);
-      });
-    if (col.length) pitchGuide(col[0].norm);
-    /* the strongest signal in this column also drives the nature texture; rows = this column, one strength per latitude row */
-    var rr = new Array(rows).fill(0);
-    col.forEach(function (n) {
-      rr[n.row] = n.norm;
-    });
-    texture(col[0], pan, SWEEP_MS / cols, rr);
-    drawMap(S.tiles, c);
-    glow(col[0]);
-    if (c === 0) {
+    if (!best || bs < 0.02 || !sw) {
+      S.gap++;
+      padOff();
+      if (S.gap > SWEEP_SUB) silenceScene(); // short gaps keep the texture, so it never chops
+      glow(null);
+    } else {
+      S.gap = 0;
+      var nn = sn / sw, rowF = sr / sw,
+        stepF = Math.max(0, Math.min(len - 1, ((S.invert ? rowF : rows - 1 - rowF) / (rows - 1)) * (len - 1))),
+        lo = Math.floor(stepF), hi = Math.min(len - 1, lo + 1),
+        midiF = noteFor(lo) + (noteFor(hi) - noteFor(lo)) * (stepF - lo),
+        step = Math.round(stepF), pres = best.p;
+      if (C.sweepGlide !== false) glide(midiF, nn, pan, pres);
+      var now = S.ctx.currentTime, rate = parseFloat($("rate").value) || 1, gapS = NOTE_MS / 1000 / rate;
+      if (notesOn() && (now - S.lastNote >= gapS || (step !== S.lastStep && now - S.lastNote >= gapS * 0.5))) {
+        S.lastNote = now;
+        S.lastStep = step;
+        var when = now + 0.02;
+        setMood(nn);
+        voice(midiToHz(noteFor(step)), when, timbreOf(best), noteLoud({ norm: nn, type: best.type }) * (0.4 + 0.6 * pres), pan);
+        cand.sort(function (u, w) { return w.s - u.s; });
+        var extra = 0;
+        for (i = 0; i < cand.length && extra < MAX_PER_COL - 1; i++) {
+          var es = Math.round(((S.invert ? cand[i].row : rows - 1 - cand[i].row) / (rows - 1)) * (len - 1));
+          if (es === step || cand[i].s < bs * 0.5) continue;
+          voice(midiToHz(noteFor(es)), when, timbreOf(cand[i]), noteLoud(cand[i]) * 0.7, pan);
+          extra++;
+        }
+        pitchGuide(nn);
+      }
+      texture({ norm: nn, value: sv / sw, type: best.type }, pan, SWEEP_MS / total, rr);
+      glow({ color: best.color, norm: nn });
+    }
+    if (col !== S.col) { S.col = col; drawMap(S.tiles, col); }
+    if (k === 0) {
       drone(planetMean(S.tiles));
       updateTable(S.tiles);
       if (S.beat % ANNOUNCE === 0) say(describe(S.tiles));
     }
-    S.col = (c + 1) % cols;
-    if (!S.col) {
-      // sweep finished: jump the video forward to the next moment
+    S.sub = (k + 1) % total;
+    if (!S.sub) { // sweep finished: jump the video forward to the next moment
       S.beat++;
       var next = S.video.currentTime + SWEEP_STEP;
       if (next >= S.video.duration - 0.05) {
         stop(finishText(), true);
         return;
       }
+      S.sw = { k: 0, t: Infinity };
       S.video.currentTime = next;
     }
   }
@@ -2160,13 +2240,17 @@
       S.storyIdx = 0;
     }
     S.col = 0;
+    S.sub = 0;
+    S.lastNote = -99;
+    S.lastStep = -1;
+    S.gap = 0;
     clearInterval(S.timer);
-    var tick = spot ? spotTick : mode === "chord" ? chordTick : colTick;
+    var tick = spot ? spotTick : mode === "chord" ? chordTick : sweepTick;
     var ms = spot
       ? SPOT_MS
       : mode === "chord"
         ? CHORD_MS
-        : SWEEP_MS / C.grid.cols;
+        : SWEEP_MS / (C.grid.cols * SWEEP_SUB);
     tick();
     S.timer = setInterval(tick, ms / rate);
     $("play").innerHTML = PAUSE;
@@ -2348,6 +2432,7 @@
     S.video.currentTime = 0;
     S.beat = 0;
     S.col = 0;
+    S.sub = 0;
     S.series = [];
     S.ticks = 0;
     S.tiles = null;
@@ -2495,15 +2580,16 @@
   /* ===== REGION 10b: INSTRUMENT SWITCHER =====
      Press I (or click an icon) to change instrument during play. Each switch sounds the
      middle note of the range, so you hear the new voice at once. */
-  var ORDER = ["pluck", "bell", "harp", "xylophone", "flute", "piano", "guitar", "violin", "accordion", "drum", "windchime", "rainstick"];
+  var ORDER = ["pluck", "bell", "sparkle", "harp", "xylophone", "flute", "piano", "guitar", "violin", "accordion", "drum", "windchime", "rainstick"];
   var INSTR_LABEL = {
-    pluck: "Pluck", bell: "Bell", harp: "Harp", xylophone: "Xylophone", flute: "Flute",
+    pluck: "Pluck", bell: "Bell", sparkle: "Sparkle", harp: "Harp", xylophone: "Xylophone", flute: "Flute",
     piano: "Piano", guitar: "Guitar", violin: "Violin", accordion: "Accordion", drum: "Drum", windchime: "Wind chime", rainstick: "Rainstick",
     drip: "Drip", ice: "Ice chime",
   };
   /* Read out for screen reader users on every switch. */
   var INSTR_DESC = {
     pluck: "A short, dry plucked note.",
+    sparkle: "A glassy celesta with tiny twinkles that follow the scale, major or minor.",
     bell: "A clear ringing tone.",
     harp: "Soft, dreamy notes that ring on.",
     xylophone: "Bright, hollow wooden bars struck with a mallet.",
@@ -2525,6 +2611,7 @@ ice: "A clear, glassy chime with a high shimmer.",
   }
   var ICONS = {
     pluck: svg('<path d="M12 2C7.5 2 4.5 5 5 9.5 5.6 15 9.5 22 12 22s6.4-7 7-12.5C19.5 5 16.5 2 12 2z"/>'),
+    sparkle: svg('<path d="M12 1l2.2 8.8L23 12l-8.8 2.2L12 23l-2.2-8.8L1 12l8.8-2.2z"/><path d="M19 1l.8 2.2L22 4l-2.2.8L19 7l-.8-2.2L16 4l2.2-.8z"/>'),
     bell: svg('<path d="M12 2a1.5 1.5 0 0 1 1.5 1.5v.6A6 6 0 0 1 18 10v4l2 3v1H4v-1l2-3v-4a6 6 0 0 1 4.5-5.9v-.6A1.5 1.5 0 0 1 12 2zM9.5 19h5a2.5 2.5 0 0 1-5 0z"/>'),
     harp: svg('<path d="M5 2h3c6 0 11 3.5 11 9 0 3.5-1.5 7-3 11h-3c1.5-3.8 3-7 3-10.5C16 7.5 12.5 5 8 5v17H5z"/><rect x="10" y="9" width="1.4" height="9" rx=".7"/><rect x="13" y="12" width="1.4" height="6" rx=".7"/>'),
     xylophone: svg('<rect x="1.5" y="3.5" width="3" height="17" rx="1.2"/><rect x="6" y="5" width="3" height="14" rx="1.2"/><rect x="10.5" y="6.5" width="3" height="11" rx="1.2"/><rect x="15" y="8" width="3" height="8" rx="1.2"/><rect x="19.5" y="9.5" width="3" height="5" rx="1.2"/>'),
@@ -2705,6 +2792,48 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     refreshScene();
   }
 
+  /* ===== REGION 10d: SCALE (major or minor pentatonic) =====
+     Both have five notes per octave, so every note sits in key and nothing clashes.
+     Major pentatonic is open and bright. Minor pentatonic is darker and more inward. */
+  var SCALES = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
+  var SCALE_LABEL = { major: "Major pentatonic", minor: "Minor pentatonic" };
+  var SCALE_DESC = { major: "Open and bright.", minor: "Darker and more inward." };
+  S.scaleName = C.scaleName || (C.scale.join() === SCALES.minor.join() ? "minor" : "major");
+  if (!SCALES[S.scaleName]) S.scaleName = "major";
+  C.scale = SCALES[S.scaleName].slice();
+  function refreshScaleUI() {
+    [["major", "scaleMajor"], ["minor", "scaleMinor"]].forEach(function (p) {
+      var b = $(p[1]);
+      if (b) b.setAttribute("aria-pressed", S.scaleName === p[0] ? "true" : "false");
+    });
+  }
+  function setScale(k) {
+    initAudio();
+    S.scaleName = k;
+    C.scale = SCALES[k].slice();
+    if (window.SceneLayers && SceneLayers.retune) SceneLayers.retune();
+    refreshScaleUI();
+    say(SCALE_LABEL[k] + ". " + SCALE_DESC[k]);
+    if (S.ctx && !S.timer) { // paused: play the scale up one octave so you hear the colour
+      var L = S.legends[0], n = C.scale.length, t = S.ctx.currentTime + 0.05,
+        ng = (L && (NOTE_GAIN[L.spec.type] || NOTE_GAIN["default"])) || 1, kt = currentInstr();
+      for (var i = 0; i <= n; i++) {
+        setMood(i / n);
+        voice(midiToHz(noteFor(n + i)), t + i * 0.2, kt, 0.25 * ng, 0);
+      }
+    }
+  }
+  function toggleScale() {
+    if (S.view !== "play") return;
+    setScale(S.scaleName === "major" ? "minor" : "major");
+  }
+  window.spotToggleScale = toggleScale; // ui.js calls this from the C key
+  function buildScaleButtons() {
+    $("scaleMajor").addEventListener("click", function () { setScale("major"); });
+    $("scaleMinor").addEventListener("click", function () { setScale("minor"); });
+    refreshScaleUI();
+  }
+
   /* ===== REGION 11: PAGE CONTROLS ===== */
   function setTargetUI() {
     $("spotOpts").hidden = S.target !== "spot";
@@ -2778,8 +2907,10 @@ ice: svg('<path d="M12 2l8 10-8 10-8-10z"/>'),
     });
 
     mixLoop();
+    sweepLoop();
     buildInstrumentBar();
     buildSceneBar();
+    buildScaleButtons();
     buildFlow();
     showItem(0, true);
 

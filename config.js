@@ -85,7 +85,10 @@ window.CONFIG = {
   spotStep: 3,              // arrow keys move the spot by this many degrees
 
   /* --- MUSIC --- */
-  sweepMs: 4000,            // sweep view: how long one west-to-east sweep takes
+  sweepMs: 14000,           // sweep view: how long one west-to-east sweep takes (slow and smooth)
+  sweepSub: 4,              // sweep view: small steps per column. More = smoother, 4 is plenty
+  sweepNoteMs: 450,         // sweep view: longest wait between instrument notes (smaller = busier)
+  sweepGlide: true,         // sweep view: a sustained voice slides between pitches so there are no gaps
   sweepStepSec: 1.5,        // sweep view: video time that jumps forward after each sweep
   chordMs: 1000,            // chord view: one chord every N ms while the video plays
   maxNotesPerColumn: 2,     // sweep view: strongest notes kept per column
@@ -95,12 +98,13 @@ window.CONFIG = {
   noteSpreadSteps: 100,  // scale steps between those notes
   
 
-  scale: [0, 2, 4, 7, 9],   // pentatonic: sounds pleasant in any combination
+  scaleName: "major",       // "major" or "minor" pentatonic. The buttons in Settings (or the C key) switch it live
+  scale: [0, 2, 4, 7, 9],   // overridden by scaleName
   octaves: 3,               // pitch range
   lowMidi: 48,              // lowest note (60 = middle C)
   volume: 1.2,
     
-  /* Instruments: pluck, bell, harp, lyre, flute, rainstick, guitar, windchime, piano*/
+  /* Instruments: pluck, bell, sparkle, harp, lyre, flute, rainstick, guitar, windchime, piano*/
  timbres: { liquid:"bell", frozen:"bell", temperature:"harp", seatemperature:"harp", default:"pluck",
   carbon_monoxide:"flute", ozone:"lyre", nitrogen_oxide:"harp" },
   noteGain: { liquid: 8, default: 1 },   // per legend type, multiplies note loudness
@@ -117,7 +121,7 @@ window.CONFIG = {
 
   drone: true,              // one low tone for the whole planet, rises a little as the mean value rises
   notes: true,            // false = no instrument notes, texture and drone only
-  sustain: false,
+  sustain: true,
 
   /* --- LISTENING ---
      view "spot":  one place, a texture every tick, a sparse note about once a second.
@@ -195,7 +199,7 @@ window.CONFIG = {
         { label: "Temperature in Celsius", type: "temperature",  url: "assets/lstlegend.png", min: -40, max: 40, scale: "linear",
           orientation: "horizontal-lowleft", crop: { x: 0, y: 0, w: 1, h: 1 } }
       ]
-    },
+    },/*
     {
       name: "Sea Surface Temperature (SST)",
       description: "The temperature of the oceans over the past two and a half years. You hear ocean swell: warmer water means faster, brighter waves. A quiet clash means warmer than this place's normal.",
@@ -212,7 +216,7 @@ window.CONFIG = {
         { label: "Temperature in Celsius", type: "seatemperature", scene: "ocean", url: "assets/seatemplegend.png", min: -5, max: 35, scale: "linear",
           orientation: "horizontal-lowleft", crop: { x: 0, y: 0, w: 1, h: 1 } }
       ]
-    },
+    },*/
     {
       name: "Carbon Monoxide (CO)",
       description: "Carbon monoxide near the ground, from NASA's GEOS-CF model. Clean air is quiet. Smoke from fires and cities adds a soft crackle and a warm haze. Higher notes mean more CO.",

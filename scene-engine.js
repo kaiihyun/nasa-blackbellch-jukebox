@@ -217,6 +217,8 @@
     }
   };
 
+  E.retune = function () { vName = null; };   // scale changed: re-pitch the pad on the next reading
+
   E.silence = function () {
     if (!ac) return;
     var now = ac.currentTime;

@@ -112,6 +112,7 @@
           <select id="upInstr">
             <option value="pluck">Pluck</option>
             <option value="bell">Bell</option>
+            <option value="sparkle">Sparkle</option>
             <option value="harp">Harp</option>
             <option value="xylophone">Xylophone</option>
             <option value="violin">Violin</option>
@@ -197,6 +198,7 @@
             <div id="vtop" class="ov dim"></div>
             <div id="vbot" class="ov dim"></div>
             <div id="vcol" class="ov"></div>
+            <div id="vline" class="sline"></div>
           </div>
         </figure>
         <section id="mixer" class="mixer card" aria-label="Sounds playing now">
@@ -252,12 +254,15 @@
             Sound map: what the sound reads. Click it, or focus it and press the
             arrow keys, to move the listening spot.
           </figcaption>
-          <canvas
-            id="map"
-            tabindex="0"
-            role="application"
-            aria-label="Listening spot. Use the arrow keys to move it. Press M from anywhere to focus the map."
-          ></canvas>
+          <div class="mapwrap">
+            <canvas
+              id="map"
+              tabindex="0"
+              role="application"
+              aria-label="Listening spot. Use the arrow keys to move it. Press M from anywhere to focus the map."
+            ></canvas>
+            <div id="mline" class="sline"></div>
+          </div>
         </figure>
 
         <aside id="info-legends" class="glass card" aria-label="Legend">
@@ -285,6 +290,11 @@
             ><select id="mode"></select>
             <label for="notes">Most notes per column</label
             ><input id="notes" type="number" min="1" max="5" />
+          </div>
+          <div id="scaleLbl" class="lbl">Scale</div>
+          <div class="scalebar" role="group" aria-labelledby="scaleLbl">
+            <button id="scaleMajor" type="button" class="btn sm" aria-pressed="true">Major pentatonic</button>
+            <button id="scaleMinor" type="button" class="btn sm" aria-pressed="false">Minor pentatonic</button>
           </div>
           <label for="rate">Speed</label
           ><select id="rate">
@@ -419,6 +429,10 @@
           <tr>
             <td><kbd>F</kbd></td>
             <td>Flip pitch</td>
+          </tr>
+          <tr>
+            <td><kbd>C</kbd></td>
+            <td>Switch between major and minor pentatonic</td>
           </tr>
           <tr>
             <td><kbd>[</kbd> <kbd>]</kbd></td>
