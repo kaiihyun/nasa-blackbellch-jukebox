@@ -275,3 +275,210 @@ body.form .ghost{display:none}
 .top.dir-prev.pre .ghost.l{transform:translateX(-25%)}.top.dir-prev.pre .ghost.r{transform:translateX(-45%)}
 @media (max-width:640px){.mid .slide{height:clamp(300px,50dvh,420px)}.mid #pDesc{--lc:3}.mid .slide h2{min-height:0}}
 @media (max-height:560px){.mid .slide{height:clamp(210px,66dvh,300px)}.mid #pDesc{--lc:2}.mid .slide h2{min-height:0}}
+
+
+/* ================= LOCATION MARK UPLOAD FORM ================= */
+body.form .mid{max-width:880px}
+body.form:not(.playing) #main{overflow:auto}
+.upbtns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:8px}
+.upbtn,.scenebtn{display:flex;align-items:center;gap:12px;text-align:left;min-height:60px;padding:8px 14px;border-radius:18px;background:rgba(255,255,255,.07);
+  border:2px dashed rgba(255,255,255,.55);color:#fff;font:inherit;cursor:pointer;transition:background .25s var(--ease),border-color .25s,transform .25s var(--ease)}
+.upbtn:hover,.scenebtn:hover{background:rgba(255,255,255,.16);border-color:#fff}
+.upbtn svg{flex:none;width:34px;height:34px}
+.upbtn.has{border-style:solid;border-color:var(--accent)}
+.upbtn .t,.scenebtn .t{min-width:0}
+.upbtn strong,.scenebtn strong{display:block;font-weight:600;line-height:1.2}
+.upbtn small,.scenebtn small{display:block;color:#c9d3e2;font-size:.75rem;overflow-wrap:anywhere;font-weight:300}
+.upcols{display:grid;grid-template-columns:1fr 1fr;gap:clamp(12px,2vw,24px);margin-top:12px;text-align:left}
+.upcol{min-width:0;background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:18px;padding:10px 14px}
+.upcol h4{margin:0 0 4px;font-size:1rem;font-weight:600}
+.igrid{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px}
+.igb{aspect-ratio:1;min-height:0;min-width:0;padding:0;display:grid;place-items:center;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.3);color:#fff;cursor:pointer;
+  transition:background .2s,border-color .2s,transform .2s var(--ease)}
+.igb:hover{background:rgba(255,255,255,.18);transform:translateY(-1px)}
+.igb svg{width:62%;height:62%}
+.igb[aria-pressed="true"]{background:rgba(90,169,238,.38);border-color:var(--accent);box-shadow:0 0 0 2px var(--accent)}
+.iname{margin:6px 0 0;font-size:.8rem;color:#dfe7f3;font-weight:400}
+.scenebtn{width:100%;margin-top:8px;border-style:solid;border-color:rgba(255,255,255,.35);border-radius:14px;min-height:52px}
+.scenebtn svg{flex:none;width:26px;height:26px}
+.scenebtn strong{color:var(--accent)}
+@media (max-width:640px){
+  .upcols{grid-template-columns:1fr}
+  .upbtn{flex-direction:column;text-align:center;gap:4px;padding:8px}
+  .upbtn svg{width:28px;height:28px}
+}
+
+/* ================= SWEEP "UPLOAD YOUR OWN" CARD: two slots, Play only when both are filled ================= */
+.slots{display:none;flex:1 1 auto;min-height:0;flex-direction:column;gap:10px}
+body.sweepup .mid .gradbox{display:none}
+body.sweepup .mid .slots{display:flex}
+.slot{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:0;padding:6px 12px;color:#fff;font:inherit;cursor:pointer;
+  background:rgba(255,255,255,.06) center/cover no-repeat;border:2px dashed rgba(255,255,255,.6);transition:background-color .25s var(--ease),border-color .25s}
+.slot:hover{background-color:rgba(255,255,255,.14);border-color:#fff}
+.slot.vid{flex:1 1 auto;flex-direction:column;gap:4px;border-radius:22px}
+.slot.leg{flex:none;height:clamp(52px,10dvh,72px);border-radius:16px}
+.slot svg{flex:none;width:clamp(26px,6dvh,44px);height:clamp(26px,6dvh,44px);position:relative}
+.slot.leg svg{width:30px;height:30px}
+.slot .t{position:relative;display:block;min-width:0;text-align:center}
+.slot strong{display:block;font-weight:600;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.slot small{display:block;color:#dfe7f3;font-size:.75rem;font-weight:300}
+.slot.has{border-style:solid;border-color:rgba(255,255,255,.9)}
+.slot.has::before{content:"";position:absolute;inset:0;background:linear-gradient(transparent 30%,rgba(2,5,11,.78))}
+.slot.has.vid{justify-content:flex-end}
+.slot.has svg{display:none}
+
+
+/* =====================================================================================
+   UNIFIED DESIGN SYSTEM. Loaded last, so these tokens and shared rules win.
+   Spacing: 8 inside a component, 12 between components in a stack, 16 to 24 between sections.
+   Radius : 28 panels, 20 media and drop zones, 16 cards, fields and tiles, 12 small tiles, pill for buttons.
+   Height : 44 controls, 36 small controls, 54 the main Play button.
+   ===================================================================================== */
+:root{
+  --sp-1:4px;--sp-2:8px;--sp-3:clamp(8px,1.6dvh,12px);--sp-4:clamp(10px,2dvh,16px);--sp-5:clamp(14px,3dvh,24px);--sp-6:clamp(18px,4dvh,32px);
+  --r-panel:28px;--r-media:20px;--r-tile:16px;--r-sm:12px;--r:28px;
+  --h-ctl:clamp(36px,5.6dvh,44px);--h-ctl-sm:clamp(30px,4.6dvh,36px);--h-big:clamp(44px,7dvh,54px);--mut:#c9d3e2;
+  --pad-card:clamp(16px,3dvh,28px) clamp(16px,3.5vw,32px);
+  --media-bd:2px solid rgba(255,255,255,.85);
+  --move:cubic-bezier(.22,.8,.24,1);--dur-out:.34s;--dur-in:.55s;
+}
+
+/* ---- buttons: one height scale, one padding rule, no stray margins ---- */
+.btn{min-height:var(--h-ctl);padding:0 var(--sp-5);display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);line-height:1.1}
+.btn.pill{padding:0 var(--sp-5)}
+.btn.sm{min-height:var(--h-ctl-sm);padding:0 var(--sp-4)}
+.btn.big{min-height:var(--h-big);height:var(--h-big);min-width:190px;margin:0;padding:0 var(--sp-6)}
+.btn kbd{margin-left:var(--sp-2)}
+.ctl2 .btn{padding:0 var(--sp-3)}
+.mixrow .btn.sm{min-height:32px;padding:0 var(--sp-3)}
+.btn.pick{justify-content:flex-start;min-height:48px;padding:var(--sp-2) var(--sp-3);gap:var(--sp-2)}
+.arrow{width:52px;height:52px}
+
+/* ---- fields and labels ---- */
+input,select{min-height:var(--h-ctl);padding:0 var(--sp-4);border-radius:var(--r-tile)}
+.src input,.src select,.ctrls select{min-height:var(--h-ctl);padding:0 var(--sp-4)}
+label{margin:0;font-weight:500}
+.ctrls label{margin:0 0 var(--sp-1);font-size:.85rem}
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field label{font-size:.85rem;color:var(--mut)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3)}
+
+/* ---- surfaces ---- */
+.card,.glass.card{border-radius:var(--r-tile);padding:var(--sp-3)}
+#info-legends,.mixer{padding:var(--sp-3)}
+.mapfig figcaption{margin:0 0 var(--sp-2)}
+.stage,.rail,.ctrls{gap:var(--sp-3)}
+.picks,.ctl2,.row2,.mixlist{gap:var(--sp-2)}
+.playing .panel{padding:var(--sp-4) var(--sp-5)}
+.gradbox,.modeshot,video{border:var(--media-bd);border-radius:var(--r-media)}
+.upcol,.scenebtn,details{border-radius:var(--r-tile)}
+.igb{border-radius:var(--r-sm)}
+.bar{padding:var(--sp-3) var(--sp-5)}
+
+/* ---- sheets (About, Setting) ---- */
+.sheet{padding:var(--sp-5) var(--sp-6)}
+.sheet h2{margin:0 0 var(--sp-3)}
+.sheet h2.sub{margin:var(--sp-5) 0 var(--sp-3)}
+.sheet h3{margin:var(--sp-4) 0 var(--sp-2)}
+.sheet p{margin:0 0 var(--sp-3)}
+
+/* ---- carousel card: spacing by gap, not by stray margins ---- */
+.slide{padding:var(--pad-card)}
+.mid .slide{gap:var(--sp-3)}
+.mid .slide h2{margin:0 88px}
+.blurb #pDesc,.blurb #pIdx{margin:0}
+.top{row-gap:var(--sp-5);column-gap:var(--sp-5);padding:var(--sp-4) clamp(24px,16vw,150px) 0}
+
+/* ---- mode screen ---- */
+body.modes .modes-screen{gap:var(--sp-5);padding:0 var(--gap) var(--sp-5)}
+.modegrid{gap:var(--sp-5)}
+.modecard{gap:var(--sp-3);padding:var(--pad-card)}
+
+/* ---- drop zones: one component for the sweep slots and the location-mark upload buttons ---- */
+.slot.vid,.slot.leg,.upbtn{border-radius:var(--r-media)}
+.upbtn{position:relative;overflow:hidden;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:var(--sp-2);
+  min-height:clamp(88px,15dvh,132px);padding:var(--sp-3);border:2px dashed rgba(255,255,255,.6);background:rgba(255,255,255,.06) center/cover no-repeat}
+.upbtn svg{width:clamp(26px,5dvh,40px);height:clamp(26px,5dvh,40px);position:relative}
+.upbtn .t{position:relative;max-width:100%;text-align:center}
+.upbtn strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.upbtn.has{justify-content:flex-end;border-style:solid;border-color:rgba(255,255,255,.9)}
+.upbtn.has::before{content:"";position:absolute;inset:0;background:linear-gradient(transparent 30%,rgba(2,5,11,.78))}
+.upbtn.has svg{display:none}
+
+/* ---- location-mark upload form ---- */
+body.form:not(.playing) .src{display:flex;flex-direction:column;gap:var(--sp-4);padding:var(--pad-card)}
+.src h3{margin:0}
+.src .upbtns,.src .upcols,.src .row{margin:0}
+.upbtns{gap:var(--sp-4)}
+/* until both files are in, only the two upload buttons are live */
+.upbtns .upbtn:not(.has){border-color:var(--accent);background-color:rgba(90,169,238,.12);box-shadow:0 0 0 4px rgba(90,169,238,.22)}
+.uphint{margin:0;text-align:center;font-size:.85rem;color:var(--mut)}
+.upcols{gap:var(--sp-4);transition:opacity .5s var(--move),filter .5s var(--move)}
+.upcols[inert]{opacity:.3;filter:saturate(.4);pointer-events:none;user-select:none}
+.upcol{display:flex;flex-direction:column;gap:var(--sp-3);padding:var(--sp-4)}
+.upcol h4{margin:0}
+.upcol .iname{margin:0}
+.scenebtn{margin:0}
+.src .row{display:flex;gap:var(--sp-3)}
+
+/* ---- carousel motion: the whole card travels sideways while it fades and blurs; the next one arrives from the other side ---- */
+.top{--sx:-34%}
+.top.dir-prev{--sx:34%}
+.top .slide{opacity:1;filter:none;transform:none;will-change:transform,opacity,filter;
+  transition:transform var(--dur-in) var(--move),opacity var(--dur-in) var(--move),filter var(--dur-in) var(--move)}
+.top.swap .slide{opacity:0;filter:blur(12px);transform:translateX(var(--sx)) scale(.95);
+  transition-duration:var(--dur-out);transition-timing-function:cubic-bezier(.5,0,.9,.6)}
+.top.pre .slide{opacity:0;filter:blur(12px);transform:translateX(calc(var(--sx) * -1)) scale(.95);transition:none}
+/* the card's contents travel with the card instead of animating on their own */
+.slide>*:not(.exit){transition:none}
+.top.swap .slide>*:not(.exit),.top.pre .slide>*:not(.exit){opacity:1;filter:none;transform:none}
+.mid>.ghost{transition:opacity var(--dur-in) var(--move),filter var(--dur-in) var(--move),transform var(--dur-in) var(--move)}
+.top.swap .ghost{transition-duration:var(--dur-out)}
+.top.pre .ghost{transition:none}
+@media (prefers-reduced-motion:reduce){.top .slide,.mid>.ghost{transition:none;will-change:auto}}
+
+/* ---- small screens ---- */
+@media (max-width:640px){
+  .btn.big{min-height:48px;height:48px;min-width:150px;padding:0 var(--sp-5)}
+  .top{row-gap:var(--sp-3);padding:var(--sp-3) 0 0}
+  .mid .slide h2{margin:var(--sp-5) 0 0}
+  .bar{padding:var(--sp-2) var(--sp-3)}
+  .sheet{padding:var(--sp-4)}
+  .modegrid{gap:var(--sp-3)}
+  .modecard{padding:var(--sp-3) var(--sp-4)}
+  .upbtns,.upcols{grid-template-columns:1fr;gap:var(--sp-3)}
+  .upbtn{min-height:84px}
+}
+@media (max-height:560px){
+  .sheet{padding:var(--sp-3) var(--sp-5)}
+  .mid .slide h2{margin:0 88px}
+}
+
+
+/* =====================================================================================
+   NOTHING SCROLLS. Every container clips instead of scrolling (clip also blocks scrolling by focus or code).
+   Content that could be too big is shrunk to fit: spacing and heights follow the screen height above,
+   the side panel drops its least important parts, and fit.js scales the upload form and the About and Setting sheets as a last step.
+   ===================================================================================== */
+html,body,.views,#main,.panel,.stage,.rail,.vidfig,.mixer{overflow:hidden;overflow:clip}
+html,body{overscroll-behavior:none}
+body.form:not(.playing) #main{overflow:hidden;overflow:clip}
+
+/* upload form: no arrow row, so the form gets the whole height; fit.js scales it if it is still too tall */
+body.form .arrow{display:none}
+body.form .top{row-gap:0}
+.src{transform-origin:top center}
+
+/* About and Setting: natural height, scaled by fit.js when the screen is smaller than the sheet */
+dialog.sheet{overflow:visible;max-height:none}
+#settings.sheet{height:auto}
+#settings .kwrap{flex:none;min-height:17.5rem;overflow:visible}
+#settings .pager{margin-top:var(--sp-4);padding-top:0}
+
+/* player side panel: the map is sized from the panel height, and the least important parts drop out first */
+@media (min-width:901px){
+  .rail{overflow:hidden;overflow:clip}
+  .mapfig canvas{width:min(100%,44cqh);margin:0 auto}
+}
+@container (max-height:440px){#info-legends{display:none}}
+@container (max-height:360px){.pitchguide{display:none}}

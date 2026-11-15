@@ -27,6 +27,14 @@
 .shot.on{display:block}
 @media (max-height:560px){.shot{display:none!important}}
 
+/* ---- Nothing scrolls: sheets are shown whole and scaled to fit by ../fit.js ---- */
+html,body,.views,.panel,.stage{overflow:hidden;overflow:clip}
+html,body{overscroll-behavior:none}
+dialog.sheet{overflow:visible;max-height:none}
+#settings.sheet{height:auto}
+#settings .kwrap{flex:none;min-height:17.5rem;overflow:visible}
+#settings .pager{margin-top:.9rem;padding-top:0}
+
 /* ---- Loading screen: the logo, notes orbiting it, a bar that only ever fills ---- */
 .loader{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
   background:radial-gradient(120% 60% at 50% 115%,#17407a 0%,#0b2a52 36%,transparent 64%),#02050b;color:#fff;
@@ -196,5 +204,6 @@
 
 <script src="presets.js"></script>
 <script src="jukebox.js"></script>
+<script src="../fit.js"></script>
 </body>
 </html>

@@ -1654,10 +1654,10 @@
     S.formOpen = true;
     document.body.classList.add("form");
     say(
-      "Upload form. Step one, choose your MP4 video. Step two, choose the legend picture. Then type the lowest and highest value and press Load and continue. Escape cancels.",
+      "Upload form. Choose your MP4 video and the legend picture. The other settings unlock when both are in. Escape cancels.",
     );
     setTimeout(function () {
-      $("file").focus();
+      $("pickVideo").focus();
     }, 60);
   }
   function closeForm(quiet) {
@@ -1719,6 +1719,7 @@
     var gb = document.querySelector("#blurb .gradbox");
     if (!gb) return;
     gb.style.backgroundImage = ""; gb.classList.remove("shot");
+    if (p === UPLOAD) { if (window.spotUpPreview) { gb.style.backgroundImage = 'url("' + window.spotUpPreview + '")'; gb.classList.add("shot"); } return; }
     var u = i === ITEMS.length - 1 ? "" : (p.thumb || p.videoUrl);
     if (!u) return;
     function put(src) { if (S.idx !== i) return; gb.style.backgroundImage = 'url("' + src + '")'; gb.classList.add("shot"); }
@@ -1751,6 +1752,9 @@
       $("pDesc").textContent = p.description || "";
       $("pIdx").textContent = i + 1 + " / " + ITEMS.length;
       paintShot(p, i);
+      var sup = p.trackId === "__upload__";
+      document.body.classList.toggle("sweepup", sup);
+      $("start").disabled = sup && !swReady();
       paintGhosts(i);
       b.classList.add("pre");            // jump to the "arriving" pose without animating...
       b.classList.remove("swap");
@@ -1761,7 +1765,7 @@
     else {
       b.classList.add("swap");
       clearTimeout(S.swapT);
-      S.swapT = setTimeout(text, 320);
+      S.swapT = setTimeout(text, 340);   // matches --dur-out in glass.css
     }
     setTheme(
       p.cols && !(p.theme && p.theme.fixed)
@@ -1816,6 +1820,34 @@
   }
   window.spotSetMode = setMode;
   window.spotCurrent = function () { return ITEMS[S.idx]; };
+  window.spotShot = grabShot;   // ui.js uses this for the preview in the upload form
+  window.spotRepaint = function () { paintShot(ITEMS[S.idx], S.idx); };
+  /* ===== Sweep "Upload your own": two slots (video, legend). Play opens the Earth Jukebox player only when both are filled. ===== */
+  S.sw = { video: null, legend: null };
+  function swReady() { return !!(S.sw.video && S.sw.legend); }
+  window.spotSweepFiles = function () { return swReady() ? S.sw : null; };
+  function slotSet(which, file) {
+    var btn = $(which === "video" ? "slotVideo" : "slotLegend");
+    S.sw[which] = file || null;
+    btn.classList.toggle("has", !!file);
+    btn.style.backgroundImage = "";
+    btn.querySelector("strong").textContent = file ? file.name : (which === "video" ? "Upload video" : "Upload legend");
+    btn.querySelector("small").textContent = file ? "Click to replace" : (which === "video" ? "MP4, MOV, WebM" : "PNG, JPG, WebP");
+    if (file) {
+      var url = URL.createObjectURL(file);
+      if (which === "legend" || /^image/.test(file.type)) btn.style.backgroundImage = 'url("' + url + '")';
+      else grabShot(url).then(function (d) { if (S.sw.video === file) btn.style.backgroundImage = 'url("' + d + '")'; }).catch(function () {});
+    }
+    if (ITEMS[S.idx] && ITEMS[S.idx].trackId === "__upload__") $("start").disabled = !swReady();
+    say(file ? (which === "video" ? "Video" : "Legend") + " chosen: " + file.name + ". " + (swReady() ? "Both are ready. Press Play." : "Now choose the " + (which === "video" ? "legend." : "video."))
+             : "Cleared.");
+  }
+  /* The instrument grid in the upload form plays a short preview of the instrument you pick. */
+  window.spotPreviewInstrument = function (k) {
+    initAudio();
+    setMood(0.5);
+    voice(midiToHz(pitchForNorm(0.5)), S.ctx.currentTime + 0.03, k, 0.3, 0);
+  };
   function resetPlayback(msg) {
     stop();
     S.video.currentTime = 0;
@@ -1862,7 +1894,11 @@
     else go();
   }
   async function enter() {
-    if (ITEMS[S.idx] && ITEMS[S.idx].sweep) return; // sweep tracks open in the Earth Jukebox player (bridge.js)
+    var cp = ITEMS[S.idx];   // sweep tracks open in the Earth Jukebox player (bridge.js)
+    if (cp && cp.sweep) {
+      if (cp.trackId === "__upload__" && !swReady()) say("Upload a video and a legend first. Click the two boxes on the card.");
+      return;
+    }
     initAudio(); /* inside the key press, before any await, or the browser keeps sound muted */
     if (S.busy) return;
     if (isUpload() && !S.formOpen) {
@@ -1885,7 +1921,7 @@
     resetPlayback("Back to the menu. Press Enter to play again.");
     document.body.classList.remove("playing");
     S.view = "menu";
-    if (S.formOpen) $("file").focus();
+    if (S.formOpen) $("pickVideo").focus();
     else $("start").focus();
   }
   async function onLoad() {
@@ -2265,6 +2301,13 @@
     buildPickers();
     $("ghostL").addEventListener("click", function () { $("prev").click(); });
     $("ghostR").addEventListener("click", function () { $("next").click(); });
+    [["slotVideo", "swVideo", "video"], ["slotLegend", "swLegend", "legend"]].forEach(function (a) {
+      $(a[0]).addEventListener("click", function () { $(a[1]).click(); });
+      $(a[1]).addEventListener("change", function () {
+        if (this.files[0]) slotSet(a[2], this.files[0]);
+        this.value = "";
+      });
+    });
     setMode("location");
 
     function go(d) {

@@ -187,6 +187,82 @@
     }
   }, true);
 
+  /* ---- upload form (location mark): file buttons, instrument grid, texture button ---- */
+  var ST = 'viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"';
+  var OUT = {
+    pluck: '<path d="M12 3c-4.5 0-7 3-6.4 7C6.2 15 9.5 21 12 21s5.8-6 6.4-11C19 6 16.5 3 12 3z"/>',
+    bell: '<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+    sparkle: '<path d="M12 3l2 7 7 2-7 2-2 7-2-7-7-2 7-2z"/>',
+    harp: '<path d="M6 3v18"/><path d="M6 3c8 0 12 3 12 8 0 3-1.5 6-3 10"/><path d="M10 7v14M14 9v11"/>',
+    xylophone: '<rect x="2.5" y="4" width="3.4" height="16" rx="1.3"/><rect x="7.2" y="6" width="3.4" height="12" rx="1.3"/><rect x="11.9" y="8" width="3.4" height="9" rx="1.3"/><rect x="16.6" y="10" width="3.4" height="6" rx="1.3"/>',
+    accordion: '<rect x="2" y="5" width="5" height="14" rx="1.5"/><rect x="17" y="5" width="5" height="14" rx="1.5"/><path d="M9.5 7v10M12 7v10M14.5 7v10"/>',
+    flute: '<rect x="2" y="9" width="20" height="6" rx="3"/><circle cx="7" cy="12" r=".5"/><circle cx="11" cy="12" r=".5"/><circle cx="15" cy="12" r=".5"/>',
+    piano: '<rect x="3" y="5" width="18" height="14" rx="1.5"/><path d="M8.5 5v14M12 5v14M15.5 5v14"/><path d="M7 5v7M10.5 5v7M14 5v7"/>',
+    drip: '<path d="M12 3s6 7 6 11a6 6 0 0 1-12 0c0-4 6-11 6-11z"/>',
+    ice: '<path d="M12 3l6 9-6 9-6-9z"/><path d="M6 12h12"/>'
+  };
+  var upI = $("upInstr"), igrid = $("instGrid"), ibtns = [];
+  [].slice.call(upI.options).forEach(function (o) {
+    var b = document.createElement("button");
+    b.type = "button"; b.className = "igb"; b.title = o.textContent; b.setAttribute("aria-label", o.textContent);
+    b.innerHTML = "<svg " + ST + ">" + (OUT[o.value] || "") + "</svg>";
+    b.addEventListener("click", function () { pickInst(o.value, true); });
+    igrid.appendChild(b); ibtns.push(b);
+  });
+  function pickInst(v, play) {
+    upI.value = v;
+    ibtns.forEach(function (b, j) { b.setAttribute("aria-pressed", upI.options[j].value === v); });
+    $("instName").textContent = "Instrument: " + upI.options[upI.selectedIndex].text;
+    if (play) { say("Instrument: " + upI.options[upI.selectedIndex].text + "."); if (window.spotPreviewInstrument) window.spotPreviewInstrument(v); }
+  }
+  pickInst(upI.value, false);
+  var upS = $("upScene");
+  function showScene() { $("sceneName").textContent = upS.options[upS.selectedIndex].text; }
+  showScene();
+  $("sceneCycle").addEventListener("click", function () {
+    upS.selectedIndex = (upS.selectedIndex + 1) % upS.options.length; showScene();
+    say("Background texture: " + upS.options[upS.selectedIndex].text + ".");
+  });
+  /* The two upload buttons show a preview of the chosen file. The settings stay locked (inert, dimmed) until both files are in. */
+  var pv = { v: null, l: null }, upc = $("upcols");
+  function preview(which, file) {
+    if (pv[which] === file) return;
+    pv[which] = file;
+    var btn = $(which === "v" ? "pickVideo" : "pickLegend");
+    btn.style.backgroundImage = "";
+    if (which === "v") window.spotUpPreview = "";
+    if (!file) { if (which === "v" && window.spotRepaint) window.spotRepaint(); return; }
+    var url = URL.createObjectURL(file);
+    if (which === "l") { btn.style.backgroundImage = 'url("' + url + '")'; return; }
+    if (!window.spotShot) return;
+    window.spotShot(url).then(function (d) {
+      if (pv.v !== file) return;
+      btn.style.backgroundImage = 'url("' + d + '")';
+      window.spotUpPreview = d;
+      if (window.spotRepaint) window.spotRepaint();   // the carousel card shows the same picture
+    }).catch(function () {});
+  }
+  function syncForm(speak) {
+    var v = $("file").files[0], l = $("legendFile").files[0], ready = !!(v && l);
+    $("vName").textContent = v ? v.name : "MP4";
+    $("lName").textContent = l ? l.name : "PNG, JPG, WebP";
+    $("pickVideo").classList.toggle("has", !!v);
+    $("pickLegend").classList.toggle("has", !!l);
+    preview("v", v || null);
+    preview("l", l || null);
+    upc.inert = !ready;
+    $("load").disabled = !ready;
+    $("upHint").textContent = ready ? "Both files are in. Adjust the settings, then load."
+      : v ? "Now add the legend picture." : l ? "Now add the video." : "Add your video and legend picture to unlock the settings below.";
+    if (speak) say(ready ? "Both files chosen. The settings are unlocked. Press Load and continue when ready."
+      : v ? "Video chosen. Now choose the legend picture." : l ? "Legend chosen. Now choose the video." : "Cleared.");
+  }
+  $("pickVideo").addEventListener("click", function () { $("file").click(); });
+  $("pickLegend").addEventListener("click", function () { $("legendFile").click(); });
+  $("file").addEventListener("change", function () { syncForm(true); });
+  $("legendFile").addEventListener("change", function () { syncForm(true); });
+  syncForm();
+
   /* open on the landing screen */
   $("homeStart").focus();
   say("DANIG. The world, through sound. Press Enter to start.");

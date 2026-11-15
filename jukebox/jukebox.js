@@ -689,6 +689,49 @@ window.EJ = window.EJ || {};
     announce('Loading cancelled. ' + $('pTitle').textContent + '.');
   }
   function leavePlayer() { loadSeq++; if (src && src.kind === 'video') src.el.pause(); if (EJ.audio.playing) setPlaying(false); screen('menu'); renderMenu(); $('start').focus(); announce('Playlist. ' + $('pTitle').textContent + '.'); }
+  EJ.openCustom = function (vf, lf) {   // the DANIG sweep "Upload your own" card: your video + your legend picture, then the player opens
+    if (!vf || !lf || entering) return;
+    EJ.audio.prime();
+    var mine = ++enterSeq; entering = EJ.loading = true; EJ.loadError = '';
+    loadSeq++; if (src && src.kind === 'video') src.el.pause(); src = null;
+    if (EJ.audio.playing) setPlaying(false);
+    Loader.begin(); Loader.progress(0.1);
+    announce('Loading your files. Please wait. Press Escape to cancel.');
+    function bad(msg) { if (mine !== enterSeq) return; entering = EJ.loading = false; EJ.loadError = msg; announce(msg); Loader.fail(); }
+    var url = URL.createObjectURL(lf), img = new Image();
+    img.onerror = function () { URL.revokeObjectURL(url); bad('Could not open the legend picture.'); };
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      if (mine !== enterSeq) return;
+      var L, id, name;
+      try { L = readLegend(img, { image: lf.name }); } catch (err) { return bad('Could not read that legend: ' + err.message); }
+      id = 'custom' + (++seq); name = lf.name.replace(/\.[^.]+$/, '');
+      registerMap({ id: id, map: id, mapName: 'Custom: ' + name, blurb: 'Your own legend, ' + L.colors.length + (L.discrete ? ' steps' : ' colors') + '. Above the middle value buzzes, below it chimes.',
+        voice: { scale: 'major', reverb: 0.5, hiss: 0.04 } }, L);
+      ranges[id] = function (lo, hi) {
+        L.lo = lo; L.hi = hi; L.colors.forEach(function (c) { c[0] = lo + c[4] * (hi - lo); });
+        EJ.MAPS[id].ticks = ticks(L, false, '');
+      };
+      customs.push({ id: id, map: id, name: 'Custom: ' + name, blurb: '' });
+      $('legendMin').value = 0; $('legendMax').value = 1;
+      cur = tracks().length - 1; applyMap(tracks()[cur]); setSpeed(24);
+      Loader.progress(0.4);
+      loadFile(vf, function (ok) {
+        if (mine !== enterSeq) return;
+        if (!ok) return bad('Could not open that video.');
+        t0 = performance.now();
+        Loader.end(function () {
+          if (mine !== enterSeq) return;
+          entering = EJ.loading = false;
+          screen('play');
+          if (!EJ.audio.playing) setPlaying(true);
+          if (!looping) { looping = true; requestAnimationFrame(frame); }
+          $('play').focus(); announce('Playing your own files. Set what the lowest and highest values of the legend mean, then press Space to stop, Escape to go back.');
+        });
+      });
+    };
+    img.src = url;
+  };
   $('homeStart').onclick = leaveHome;
   $('start').onclick = enterPlayer;
   $('exitMenu').onclick = goHome;

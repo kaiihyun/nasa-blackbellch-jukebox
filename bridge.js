@@ -63,10 +63,14 @@
   }
   function drive(id, t0) {   /* uses the jukebox's own controls: Start, the number key, Play. The upload card opens the player empty. */
     var d = win.document, E = win.EJ, up = id === UP, i;
-    if (up) i = (E && E.isReady && E.isReady() && E.openBlank) ? 0 : -1; else i = index(id);
+    if (up) i = (E && E.isReady && E.isReady() && E.openCustom) ? 0 : -1; else i = index(id);
     if (i < 0) { if (Date.now() - t0 > 20000) fail(); else setTimeout(function () { drive(id, t0); }, 100); return; }
     if (d.body.classList.contains("home")) d.getElementById("homeStart").click();
-    if (up) { E.openBlank(); wait(Date.now()); return; }
+    if (up) {
+      var f = window.spotSweepFiles && window.spotSweepFiles();
+      if (!f) return fail("Upload a video and a legend first.");
+      E.openCustom(f.video, f.legend); wait(Date.now()); return;
+    }
     d.body.dispatchEvent(new win.KeyboardEvent("keydown", { key: String(i + 1), bubbles: true }));
     setTimeout(function () { d.getElementById("start").click(); wait(Date.now()); }, 260);
   }
@@ -92,7 +96,7 @@
     document.body.appendChild(frame);
     frame.focus();
   }
-  function current() { var it = window.spotCurrent && window.spotCurrent(); return it && it.sweep ? it.trackId : null; }
+  function current() { var it = window.spotCurrent && window.spotCurrent(); return it && it.sweep && (it.trackId !== UP || window.spotSweepFiles()) ? it.trackId : null; }
 
   /* 3. Play on a jukebox track: click, or Enter / Space on the playlist */
   document.addEventListener("click", function (e) {
