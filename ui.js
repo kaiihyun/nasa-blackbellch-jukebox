@@ -13,16 +13,27 @@
   mirror();
 
   /* ---- landing and menu ---- */
-  function leaveHome() {
+  function leaveHome() {                     /* landing -> mode screen */
     if (!body.classList.contains("home")) return;
-    body.classList.remove("home");
-    $("start").focus();
-    say(t1.textContent + ". Press Enter to play. Use the left and right arrow keys to change dataset.");
+    body.classList.remove("home"); body.classList.add("modes");
+    $("modeLoc").focus();
+    say("Choose a mode. Press 1 for Location mark, 2 for Sweep. Left and right arrow keys move between them.");
   }
   function goHome() {
-    body.classList.add("home");
+    body.classList.remove("modes"); body.classList.add("home");
     $("homeStart").focus();
     say("DANIG. The world, through sound. Press Enter to start.");
+  }
+  function goModes() {                       /* carousel -> mode screen */
+    body.classList.add("modes");
+    $("modeLoc").focus();
+    say("Choose a mode. Press 1 for Location mark, 2 for Sweep.");
+  }
+  function chooseMode(m) {
+    if (window.spotSetMode) window.spotSetMode(m);
+    body.classList.remove("modes");
+    $("start").focus();
+    say((m === "sweep" ? "Sweep mode. " : "Location mark mode. ") + t1.textContent + ". Press Enter to play. Use the left and right arrow keys to change dataset.");
   }
   function go(d) {
     var s = $("preset");
@@ -30,7 +41,10 @@
     s.dispatchEvent(new Event("change"));
   }
   $("homeStart").addEventListener("click", leaveHome);
-  $("exitMenu").addEventListener("click", goHome);
+  $("exitMenu").addEventListener("click", goModes);
+  $("exitModes").addEventListener("click", goHome);
+  $("modeLoc").addEventListener("click", function () { chooseMode("location"); });
+  $("modeSweep").addEventListener("click", function () { chooseMode("sweep"); });
   $("prev").addEventListener("click", function () { go(-1); });
   $("next").addEventListener("click", function () { go(1); });
   ["prev", "next"].forEach(function (id) {
@@ -139,8 +153,16 @@
       if ((k === "Enter" || k === " ") && e.target.tagName !== "BUTTON") { e.preventDefault(); leaveHome(); }
       e.stopImmediatePropagation(); return;
     }
+    if (body.classList.contains("modes")) {  /* mode screen */
+      if (k === "Escape") goHome();
+      else if (k === "1") chooseMode("location");
+      else if (k === "2") chooseMode("sweep");
+      else if (k === "ArrowLeft") { e.preventDefault(); $("modeLoc").focus(); }
+      else if (k === "ArrowRight") { e.preventDefault(); $("modeSweep").focus(); }
+      e.stopImmediatePropagation(); return;
+    }
     if (!playing) {                         /* menu */
-      if (k === "Escape" && !body.classList.contains("form")) { goHome(); return; }
+      if (k === "Escape" && !body.classList.contains("form")) { goModes(); return; }
       var n = parseInt(k, 10), cards = document.querySelectorAll(".cf");
       if (n >= 1 && n <= cards.length && !cards[n - 1].classList.contains("on")) cards[n - 1].click();
       return;

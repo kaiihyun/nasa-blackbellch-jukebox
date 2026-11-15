@@ -6,7 +6,7 @@
   "use strict";
   var $ = function (id) { return document.getElementById(id); };
   var C = window.CONFIG, EJP = (window.EJ && window.EJ.PRESETS) || [], DIR = "jukebox/";
-  var FALLBACK = ["#5aa9ee", "#6366f1", "#a855f7"], TRACKS = {};
+  var FALLBACK = ["#5aa9ee", "#6366f1", "#a855f7"], UP = "__upload__";
   function base(u) { return String(u || "").split("/").pop(); }
   function say(t) { if (window.spotSay) window.spotSay(t); }
 
@@ -14,8 +14,7 @@
   EJP.forEach(function (p) {
     var twin = C.presets.filter(function (q) { return base(q.videoUrl) && base(q.videoUrl) === base(p.video); })[0];
     var colors = (twin && twin.theme && twin.theme.colors) || FALLBACK;
-    C.presets.push({ name: p.name, description: p.blurb || "", theme: { colors: colors, fixed: true }, thumb: p.video ? DIR + p.video : "" });
-    TRACKS[p.name] = p.id;
+    C.presets.push({ name: p.name, description: p.blurb || "", theme: { colors: colors, fixed: true }, thumb: p.video ? DIR + p.video : "", sweep: true, trackId: p.id });
   });
 
   /* 2. the player, loaded the first time it is needed */
@@ -62,10 +61,12 @@
     for (var i = 0; i < T.length; i++) if (T[i].id === id) return i;
     return -1;
   }
-  function drive(id, t0) {   /* uses the jukebox's own controls: Start, the number key, Play */
-    var i = index(id), d = win.document;
+  function drive(id, t0) {   /* uses the jukebox's own controls: Start, the number key, Play. The upload card opens the player empty. */
+    var d = win.document, E = win.EJ, up = id === UP, i;
+    if (up) i = (E && E.isReady && E.isReady() && E.openBlank) ? 0 : -1; else i = index(id);
     if (i < 0) { if (Date.now() - t0 > 20000) fail(); else setTimeout(function () { drive(id, t0); }, 100); return; }
     if (d.body.classList.contains("home")) d.getElementById("homeStart").click();
+    if (up) { E.openBlank(); wait(Date.now()); return; }
     d.body.dispatchEvent(new win.KeyboardEvent("keydown", { key: String(i + 1), bubbles: true }));
     setTimeout(function () { d.getElementById("start").click(); wait(Date.now()); }, 260);
   }
@@ -91,7 +92,7 @@
     document.body.appendChild(frame);
     frame.focus();
   }
-  function current() { return TRACKS[$("pTitle").textContent]; }
+  function current() { var it = window.spotCurrent && window.spotCurrent(); return it && it.sweep ? it.trackId : null; }
 
   /* 3. Play on a jukebox track: click, or Enter / Space on the playlist */
   document.addEventListener("click", function (e) {
@@ -101,7 +102,7 @@
   }, true);
   document.addEventListener("keydown", function (e) {
     var cl = document.body.classList;
-    if (cl.contains("home") || cl.contains("playing") || cl.contains("form") || document.querySelector("dialog[open]")) return;
+    if (cl.contains("home") || cl.contains("modes") || cl.contains("playing") || cl.contains("form") || document.querySelector("dialog[open]")) return;
     if (e.key !== "Enter" && e.key !== " ") return;
     if (/^(BUTTON|INPUT|SELECT|TEXTAREA|A)$/.test(e.target.tagName)) return;
     var id = current(); if (!id) return;

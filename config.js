@@ -140,6 +140,11 @@ window.CONFIG = {
   upload: { name: "Upload your own", description: "Bring a video and a picture of its color bar. Hear any map move.",
             theme: { colors: ["#e5e5e5", "#737373", "#404040"], fixed: false }, videoUrl: "", legends: [] },
 
+  /* --- SWEEP MODE upload slot: the last card of the sweep carousel. Play opens the Earth Jukebox player empty,
+     ready for your own picture or video (O) and legend (L). --- */
+  sweepUpload: { name: "Upload your own", description: "Bring a picture or video and a picture of its color bar. Hear it swept from west to east.",
+                 theme: { colors: ["#e5e5e5", "#737373", "#404040"], fixed: true }, videoUrl: "", legends: [], sweep: true, trackId: "__upload__" },
+
   proxyPath: "/proxy?url=",
 
   /* --- PRESETS. "place" = the named place chosen by default.

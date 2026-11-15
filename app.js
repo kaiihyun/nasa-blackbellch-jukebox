@@ -46,14 +46,10 @@
     '<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5v11l9-5.5z"/></svg> Play';
   var PAUSE =
     '<svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor"><path d="M3 1.5h3v11H3zM8 1.5h3v11H8z"/></svg> Pause';
-  var ITEMS = C.presets.concat([
-    C.upload || {
-      name: "Upload your own",
-      description: "",
-      videoUrl: "",
-      legends: [],
-    },
-  ]);
+  var UPLOAD = C.upload || { name: "Upload your own", description: "", videoUrl: "", legends: [] };
+  var SWEEP_UPLOAD = C.sweepUpload || { name: "Upload your own", description: "", videoUrl: "", legends: [], sweep: true, trackId: "__upload__" };
+  /* The carousel shows one mode at a time: "location" = the DANIG presets, "sweep" = the Earth Jukebox tracks (see setMode). */
+  var ITEMS = C.presets.filter(function (p) { return !p.sweep; }).concat([UPLOAD]);
 
   /* ===== REGION 1: STATE ===== */
   var S = {
@@ -216,7 +212,7 @@
     return x * x + y * y + z * z;
   }
   function isUpload() {
-    return S.idx === ITEMS.length - 1;
+    return S.idx === ITEMS.length - 1 && !(ITEMS[S.idx] && ITEMS[S.idx].sweep);
   }
   function wetTile(t) {
     return t.value !== null && t.norm !== undefined;
@@ -1652,8 +1648,8 @@
       }
     });
 
-    window.addEventListener("resize", layoutFlow);
   }
+  window.addEventListener("resize", layoutFlow);
   function openForm() {
     S.formOpen = true;
     document.body.classList.add("form");
@@ -1734,6 +1730,9 @@
   function showItem(i, now) {
     var p = ITEMS[i],
       b = $("top");
+    var n0 = ITEMS.length, df = (i - S.idx + n0) % n0;   // which way the carousel moves, so the slide goes the right way round the loop
+    b.classList.toggle("dir-prev", df > n0 / 2);
+    b.classList.toggle("dir-next", df !== 0 && df <= n0 / 2);
     S.idx = i;
     $("preset").value = i;
     document.body.classList.toggle("upload", i === ITEMS.length - 1);
@@ -1746,18 +1745,23 @@
     applyPreset(i);
     S.loaded = false;
     $("play").disabled = true;
-    $("startLabel").textContent = isUpload() ? "Choose files" : "Play";
+    $("startLabel").textContent = isUpload() || p.trackId === "__upload__" ? "Choose files" : "Play";
     function text() {
       $("pTitle").textContent = p.name;
       $("pDesc").textContent = p.description || "";
       $("pIdx").textContent = i + 1 + " / " + ITEMS.length;
       paintShot(p, i);
+      paintGhosts(i);
+      b.classList.add("pre");            // jump to the "arriving" pose without animating...
       b.classList.remove("swap");
+      void b.offsetWidth;                // ...then let it glide, unblur and fade in
+      b.classList.remove("pre");
     }
     if (now) text();
     else {
       b.classList.add("swap");
-      setTimeout(text, 250);
+      clearTimeout(S.swapT);
+      S.swapT = setTimeout(text, 320);
     }
     setTheme(
       p.cols && !(p.theme && p.theme.fixed)
@@ -1767,13 +1771,51 @@
     say(
       p.name +
         ". " +
-        (isUpload()
-          ? "Press Enter to choose your files."
+        (isUpload() || p.trackId === "__upload__" ? "Press Enter to choose your files."
           : "Press Enter to start.") +
         " Use the left and right arrow keys to change.",
     );
     layoutFlow();
   }
+  /* ===== Neighbour cards: one blurred picture on each side of the centre card, no text. The carousel loops. ===== */
+  function ghostPaint(el, p, idx) {
+    var c = (p.cols && !(p.theme && p.theme.fixed)) ? p.cols : (p.theme && p.theme.colors) || ["#5aa9ee", "#6366f1", "#a855f7"];
+    el.style.backgroundImage = "linear-gradient(135deg," + c.join(",") + ")";
+    el.dataset.k = idx;
+    var u = idx === ITEMS.length - 1 ? "" : (p.thumb || p.videoUrl);
+    if (!u) return;
+    function put(src) { if (+el.dataset.k === idx && ITEMS[idx] === p) el.style.backgroundImage = 'url("' + src + '")'; }
+    var im = new Image();
+    im.onload = function () { put(im.src); };
+    im.onerror = function () { grabShot(u).then(put).catch(function () {}); };
+    im.src = u.replace(/\.[^./?]+$/, ".jpg");
+  }
+  function paintGhosts(i) {
+    var n = ITEMS.length, a = (i - 1 + n) % n, b = (i + 1) % n;
+    $("ghostL").hidden = $("ghostR").hidden = n < 2;
+    ghostPaint($("ghostL"), ITEMS[a], a);
+    ghostPaint($("ghostR"), ITEMS[b], b);
+  }
+  /* Switch the carousel to a mode: "location" (DANIG presets + upload) or "sweep" (Earth Jukebox tracks + its upload). */
+  function setMode(m) {
+    var sweep = m === "sweep";
+    ITEMS = C.presets.filter(function (p) { return !!p.sweep === sweep; }).concat([sweep ? SWEEP_UPLOAD : UPLOAD]);
+    var sel = $("preset");
+    sel.innerHTML = "";
+    ITEMS.forEach(function (p, i) {
+      var o = document.createElement("option");
+      o.value = i;
+      o.textContent = p.name;
+      sel.appendChild(o);
+    });
+    $("flow").innerHTML = "";
+    document.body.classList.toggle("m-sweep", sweep);
+    document.body.classList.toggle("m-location", !sweep);
+    buildFlow();
+    showItem(0, true);
+  }
+  window.spotSetMode = setMode;
+  window.spotCurrent = function () { return ITEMS[S.idx]; };
   function resetPlayback(msg) {
     stop();
     S.video.currentTime = 0;
@@ -1820,6 +1862,7 @@
     else go();
   }
   async function enter() {
+    if (ITEMS[S.idx] && ITEMS[S.idx].sweep) return; // sweep tracks open in the Earth Jukebox player (bridge.js)
     initAudio(); /* inside the key press, before any await, or the browser keeps sound muted */
     if (S.busy) return;
     if (isUpload() && !S.formOpen) {
@@ -2220,8 +2263,9 @@
     $("sceneBtn").hidden = !SHOW_SCENE;
     if (SHOW_MIXER) mixLoop();
     buildPickers();
-    buildFlow();
-    showItem(0, true);
+    $("ghostL").addEventListener("click", function () { $("prev").click(); });
+    $("ghostR").addEventListener("click", function () { $("next").click(); });
+    setMode("location");
 
     function go(d) {
       if (S.view === "menu" && !S.busy)
@@ -2248,7 +2292,7 @@
     document.addEventListener(
       "touchend",
       function (e) {
-        if (S.view !== "menu" || sx === null || S.busy) return;
+        if (S.view !== "menu" || sx === null || S.busy || /\b(home|modes)\b/.test(document.body.className)) return;
         if (e.target.closest && e.target.closest("#source")) {
           sx = null;
           return;

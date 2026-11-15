@@ -64,7 +64,7 @@ details{border-color:var(--line);border-radius:14px}
   background:linear-gradient(135deg,var(--a),var(--b),var(--c));box-shadow:inset 0 0 40px rgba(255,255,255,.12),0 10px 40px rgba(0,0,0,.35)}
 .blurb #pDesc{margin-top:14px;color:#e8edf5;font-weight:300;font-size:.95rem;-webkit-line-clamp:4}
 .blurb #pIdx{margin-top:8px;color:#c9d3e2}
-.exit{position:absolute;top:14px;right:16px;display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:2px 10px;background:none;border:0;border-radius:999px;color:#fff;font-weight:600;cursor:pointer;transition:background .2s}
+.exit{position:absolute;top:14px;left:16px;display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:2px 10px;background:none;border:0;border-radius:999px;color:#fff;font-weight:600;cursor:pointer;transition:background .2s}
 .exit:hover{background:rgba(255,255,255,.15)}
 .arrow{width:52px;height:52px;padding:0;display:grid;place-items:center;cursor:pointer;min-height:0}
 #prev:hover{transform:translateX(-3px)}
@@ -94,7 +94,7 @@ video{border-radius:16px;border:1px solid rgba(255,255,255,.7)}
 .sheet h2.sub{font-size:1.25rem;margin:22px 0 8px}
 .sheet h3{text-align:center;font-size:1.05rem;font-weight:600;margin:14px 0 8px}
 .sheet p{margin:0 0 10px;line-height:1.55}
-.sheet .exit{top:18px;right:20px}
+.sheet .exit{top:18px;left:20px}
 .seg{display:flex;gap:2px;padding:4px;border-radius:999px;background:rgba(255,255,255,.92)}
 .seg button{flex:1;min-height:40px;padding:4px 8px;border:0;border-radius:999px;background:none;color:#0a1220;font-weight:500;cursor:pointer;transition:background .25s var(--ease)}
 .seg button:hover{background:rgba(90,169,238,.25)}
@@ -200,3 +200,78 @@ html::after{background-image:radial-gradient(1px 1px at 40px 100px,#fff 50%,tran
 @container (max-height:660px){.mixer{display:none}}
 @container (max-height:560px){.mapfig figcaption,.pitchguide{display:none}}
 @container (max-height:460px){#info-legends p{display:none}.mapfig canvas{max-height:110px;margin:0 auto}}
+
+
+/* ================= MODE SCREEN: Location mark (left) and Sweep (right); stacked on phones ================= */
+.modes-screen{display:none;position:relative}
+body.modes .modes-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(12px,3dvh,28px);flex:1;min-height:0;padding:0 var(--gap) 3dvh;animation:rise .6s var(--ease) both}
+body.modes #main{display:none}
+.modes-screen .exit{top:12px;left:20px}
+.mtitle{font-size:clamp(1.3rem,3.6dvh,1.9rem);font-weight:600;text-align:center}
+.modegrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,3vw,40px);width:min(1100px,100%)}
+.modecard{display:flex;flex-direction:column;gap:clamp(6px,1.4dvh,12px);min-height:0;padding:clamp(14px,3dvh,26px) clamp(14px,2.6vw,28px);border-radius:var(--r);color:#fff;font:inherit;text-align:center;cursor:pointer;
+  transition:transform .3s var(--ease),border-color .3s,background .3s}
+.modecard:hover{transform:translateY(-4px);border-color:#fff;background:rgba(12,17,28,.66)}
+.modecard:active{transform:scale(.99)}
+.modecard h3{font-size:clamp(1.1rem,2.8dvh,1.5rem);font-weight:600;margin:0}
+.modecard p{color:#e8edf5;font-weight:300;font-size:.92rem;line-height:1.4;margin:0}
+.modeshot{position:relative;overflow:hidden;width:100%;height:clamp(64px,24dvh,260px);border-radius:20px;border:2px solid rgba(255,255,255,.85);
+  background:linear-gradient(135deg,#38bdf8,#6366f1,#a855f7);box-shadow:0 10px 40px rgba(0,0,0,.35)}
+.modeshot img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+/* location mark: a fixed marker */
+.marker{position:absolute;left:62%;top:46%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;border:4px solid var(--accent);box-shadow:0 0 0 3px #000,0 3px 12px rgba(0,0,0,.6)}
+.marker::after{content:"";position:absolute;inset:-16px;border-radius:50%;border:2px solid #fff;animation:mkpulse 2.2s ease-out infinite}
+@keyframes mkpulse{from{transform:scale(.35);opacity:1}to{transform:scale(1.25);opacity:0}}
+/* sweep: colour on the left of the line, grey on the right */
+.modeshot .gray{position:absolute;inset:0;filter:grayscale(1) brightness(.88);animation:swclip 6s linear infinite}
+.modeshot .line{position:absolute;top:0;bottom:0;left:0;width:3px;margin-left:-1.5px;background:#fff;
+  box-shadow:0 0 10px 3px rgba(255,255,255,.9),0 0 30px 10px rgba(90,169,238,.75);animation:swline 6s linear infinite}
+@keyframes swclip{from{clip-path:inset(0 0 0 0%)}to{clip-path:inset(0 0 0 100%)}}
+@keyframes swline{from{left:0%}to{left:100%}}
+@media (prefers-reduced-motion:reduce){.marker::after{animation:none;opacity:.6;transform:none}.modeshot .gray{animation:none;clip-path:inset(0 0 0 50%)}.modeshot .line{animation:none;left:50%}}
+@media (max-width:640px){
+  .modegrid{grid-template-columns:1fr;gap:12px}
+  .modeshot{height:clamp(52px,16dvh,150px)}
+  .modecard{padding:12px 14px}
+  .modes-screen .exit kbd{display:none}
+}
+@media (max-height:560px){.modecard p{display:none}.mtitle{display:none}}
+
+/* ================= CAROUSEL: centre card, one blurred neighbour each side, arrows and Play underneath, loops ================= */
+.carousel{display:contents}
+.top{display:grid;grid-template-columns:1fr auto 1fr;grid-template-areas:"mid mid mid" "prev start next";justify-content:stretch;justify-items:center;align-items:center;
+  width:100%;row-gap:clamp(12px,3dvh,26px);column-gap:clamp(14px,3vw,36px);padding:clamp(4px,3dvh,32px) clamp(24px,16vw,150px) 0}
+.mid{grid-area:mid;position:relative;width:100%;max-width:700px;justify-self:center}
+#prev{grid-area:prev;justify-self:end}#next{grid-area:next;justify-self:start}#start{grid-area:start}
+.mid .slide,.mid .src{position:relative;z-index:1}
+.mid>.ghost{position:absolute;top:12%;bottom:12%;width:40%;z-index:0;border-radius:var(--r);background:center/cover no-repeat #1a2a44;
+  filter:blur(3px) saturate(.9) brightness(.75);opacity:.9;cursor:pointer;transition:opacity .28s var(--ease)}
+.mid>.ghost.l{left:-18%;clip-path:inset(0 55% 0 0)}
+.mid>.ghost.r{right:-18%;clip-path:inset(0 0 0 55%)}
+.top.swap .ghost{opacity:0}
+body.form .ghost{display:none}
+
+
+/* ================= SMOOTH SLIDE, BLUR AND FADE; FIXED CARD HEIGHT ================= */
+.top{--sx:-30px}
+.top.dir-prev{--sx:30px}
+.mid .slide{display:flex;flex-direction:column;height:clamp(340px,56dvh,470px);overflow:hidden}
+.mid .slide h2{flex:none;min-height:2.4em;display:flex;align-items:center;justify-content:center}
+.mid .gradbox{flex:1 1 auto;height:auto;min-height:0}
+.mid #pDesc{flex:none;min-height:calc(var(--lc,4)*1.45em)}
+.mid #pIdx{flex:none}
+/* text and picture: fade, blur and slide as one */
+.slide>*:not(.exit){transition:opacity .32s var(--ease),filter .32s var(--ease),transform .38s var(--ease)}
+.top.swap .slide{opacity:1;transform:none}
+.top.swap .slide>*:not(.exit){opacity:0;filter:blur(8px);transform:translateX(var(--sx))}
+.top.pre .slide>*:not(.exit){opacity:0;filter:blur(8px);transform:translateX(calc(var(--sx) * -1));transition:none}
+/* neighbour cards: blur out, glide, and come back in */
+.mid>.ghost{transition:opacity .32s var(--ease),filter .32s var(--ease),transform .4s var(--ease)}
+.top.swap .ghost{opacity:0;filter:blur(9px) brightness(.75)}
+.top.dir-next.swap .ghost.l{transform:translateX(-25%)}.top.dir-next.swap .ghost.r{transform:translateX(-45%)}
+.top.dir-prev.swap .ghost.l{transform:translateX(45%)}.top.dir-prev.swap .ghost.r{transform:translateX(25%)}
+.top.pre .ghost{transition:none;opacity:0;filter:blur(9px) brightness(.75)}
+.top.dir-next.pre .ghost.l{transform:translateX(45%)}.top.dir-next.pre .ghost.r{transform:translateX(25%)}
+.top.dir-prev.pre .ghost.l{transform:translateX(-25%)}.top.dir-prev.pre .ghost.r{transform:translateX(-45%)}
+@media (max-width:640px){.mid .slide{height:clamp(300px,50dvh,420px)}.mid #pDesc{--lc:3}.mid .slide h2{min-height:0}}
+@media (max-height:560px){.mid .slide{height:clamp(210px,66dvh,300px)}.mid #pDesc{--lc:2}.mid .slide h2{min-height:0}}
