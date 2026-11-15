@@ -100,7 +100,11 @@
     scene: null, // scene layer chosen with the U key; null = the preset's own layer
     mood: 1, // 1 = major (bright), 0 = minor (dark): set from the data before each chord note
     keyBusy: false, // true while the sound key is playing
+    pan: true, // P key: true = west in the left ear, east in the right; false = centered
+    loadSeq: 0, // bumps whenever a load starts or is cancelled, so an old load can never finish a new one
+    abort: null, // cancels the video that is loading
   };
+  try { S.pan = localStorage.getItem("danigPan") !== "0"; } catch (e) {}
 
   /* ===== MIXER: one channel per sound layer, each with a spectrum tap and a mute ===== */
   var CH = {}, LABELS = {};
@@ -246,6 +250,10 @@
       " degrees " +
       (s.lon < 0 ? "west" : "east")
     );
+  }
+  /* Left/right position of the listening spot: west = left, east = right. P switches it off (centered). */
+  function spotPan() {
+    return S.pan ? ((FLIP * S.spot.lon) / 180) * PAN : 0;
   }
   function legendFor(t) {
     return (
@@ -465,23 +473,43 @@
   }
 
   /* ===== REGION 4: VIDEO LOADING ===== */
-  function tryVideo(src, cors) {
+  /* Resolves only when the video is fully usable: first frame decoded AND the browser has it all (or can play it through).
+     After 15 s with the first frame ready it goes ahead anyway, so a slow network never traps you. */
+  function tryVideo(src, cors, onProg) {
     return new Promise(function (ok, no) {
-      var v = S.video;
-      function clean() {
-        v.removeEventListener("loadeddata", good);
-        v.removeEventListener("error", bad);
+      var v = S.video, t0 = Date.now(), poll = null, EVS = ["loadeddata", "progress", "canplay", "canplaythrough", "loadedmetadata"];
+      function frac() {
+        try {
+          if (v.duration && v.buffered.length) return Math.min(1, v.buffered.end(v.buffered.length - 1) / v.duration);
+        } catch (e) {}
+        return 0;
       }
-      function good() {
-        clean();
-        ok();
+      function clean() {
+        EVS.forEach(function (n) { v.removeEventListener(n, check); });
+        v.removeEventListener("error", bad);
+        clearInterval(poll);
+        S.abort = null;
+      }
+      function check() {
+        var f = frac();
+        if (onProg) onProg(v.readyState >= 2 ? Math.max(f, 0.05) : f * 0.5);
+        if (v.readyState >= 2 && (f >= 0.98 || v.readyState >= 4 || Date.now() - t0 > 15000)) {
+          clean();
+          ok();
+        }
       }
       function bad() {
         clean();
         no(new Error("video failed"));
       }
-      v.addEventListener("loadeddata", good);
+      S.abort = function () {
+        clean();
+        no(new Error("cancelled"));
+      };
+      EVS.forEach(function (n) { v.addEventListener(n, check); });
       v.addEventListener("error", bad);
+      poll = setInterval(check, 300);
+      v.preload = "auto";
       if (cors) v.crossOrigin = "anonymous";
       else v.removeAttribute("crossorigin");
       v.src = src;
@@ -495,16 +523,18 @@
     x.drawImage(S.video, 0, 0, 1, 1);
     x.getImageData(0, 0, 1, 1);
   }
-  async function loadVideo(url, isLocal) {
+  async function loadVideo(url, isLocal, onProg) {
     if (isLocal) {
-      await tryVideo(url, false);
+      await tryVideo(url, false, onProg);
       return;
     }
+    var mine = S.loadSeq;
     try {
-      await tryVideo(url, true);
+      await tryVideo(url, true, onProg);
       probe();
     } catch (e) {
-      await tryVideo(proxied(url), true);
+      if (mine !== S.loadSeq) throw e; // cancelled: do not retry through the proxy
+      await tryVideo(proxied(url), true, onProg);
       probe();
     }
   }
@@ -1227,7 +1257,7 @@
     }
     var L = legendFor(t),
       kind = sceneOf(L),
-      pan = ((FLIP * S.spot.lon) / 180) * PAN,
+      pan = spotPan(),
       a = preview ? 0 : anomaly(t.norm);
     var base = indexForNorm(t.norm),
       m = noteFor(base);
@@ -1518,6 +1548,7 @@
     storyCheck();
   }
   function start() {
+    if (!S.loaded || S.video.readyState < 2) return; // never play before the video and legend are fully ready
     initAudio();
     var rate = parseFloat($("rate").value);
     S.video.playbackRate = rate;
@@ -1598,7 +1629,7 @@
         e.preventDefault();
       });
       b.addEventListener("click", function () {
-        if (S.view !== "menu") return;
+        if (S.view !== "menu" || S.busy) return;
         if (i === S.idx) enter();
         else showItem(i);
       });
@@ -1862,33 +1893,54 @@
     } else specs = P.legends;
     if (!file && !url) return say("This preset has no video.");
     if (!specs || !specs.length) return say("No usable legend.");
+    var mine = ++S.loadSeq;
+    DanigLoader.show(cancelLoad);
+    say("Loading " + P.name + ". Please wait. Press Escape to cancel.");
     try {
-      say("Loading legend.");
       S.legends = [];
-      for (var i = 0; i < specs.length; i++)
+      for (var i = 0; i < specs.length; i++) {
         S.legends.push(await decodeLegend(specs[i]));
+        if (mine !== S.loadSeq) return;
+        DanigLoader.progress(0.1 * ((i + 1) / specs.length));
+      }
       S.warn = legendOverlap();
       showLegends();
       var en = S.legends[0].entries;
       if (isUpload()) paintCover(S.idx, en);
       if (!(P.theme && P.theme.fixed))
         setTheme([colorAt(en, 0.85), colorAt(en, 0.55), colorAt(en, 0.25)]);
-      say("Loading video.");
-      await loadVideo(file ? URL.createObjectURL(file) : url, !!file);
+      await loadVideo(file ? URL.createObjectURL(file) : url, !!file, function (f) {
+        if (mine === S.loadSeq) DanigLoader.progress(0.1 + 0.85 * f);
+      });
+      if (mine !== S.loadSeq) return;
       prepAnalysis();
       setVideoAspect();
+      S.storyIdx = 0;
+      var fin = await DanigLoader.done(); // bar reaches 100%, then the screen fades
+      if (!fin || mine !== S.loadSeq) return;
       S.loaded = true;
       refreshInstrument();
       $("play").disabled = false;
-      S.storyIdx = 0;
       say("Ready. Press Play.");
     } catch (e) {
+      if (mine !== S.loadSeq) return; // cancelled: cancelLoad already spoke
+      DanigLoader.fail();
+      S.loaded = false;
       say(
         "Could not load: " +
           e.message +
           ". If the file is not an MP4 or the legend is not a picture, choose another. If you host the site, run server.py or check the file paths.",
       );
     }
+  }
+  /* Esc on the loading screen. */
+  function cancelLoad() {
+    S.loadSeq++;
+    if (S.abort) S.abort();
+    DanigLoader.fail();
+    S.loaded = false;
+    $("play").disabled = true;
+    say("Loading cancelled. Press Enter to try again.");
   }
 
   /* ===== REGION 10b: INSTRUMENT BUTTON =====
@@ -2071,6 +2123,21 @@
   }
   window.spotToggleScale = toggleScale; // ui.js calls this from the C key
 
+  /* ===== PAN (P key): west in the left ear and east in the right, or centered ===== */
+  function setPan(on, quiet) {
+    S.pan = on;
+    try { localStorage.setItem("danigPan", on ? "1" : "0"); } catch (e) {}
+    if (S.ctx && S.pad) S.pad.p.pan.setTargetAtTime(Math.max(-1, Math.min(1, spotPan())), S.ctx.currentTime, 0.1);
+    if (!quiet)
+      say(on ? "Panning on. West is in your left ear, east in your right." : "Panning off. The sound is centered.");
+    if (!quiet && S.ctx && !S.timer && S.loaded && S.sample) playSample(S.sample, S.ctx.currentTime + 0.02, true); // paused: play one note so you hear the change
+  }
+  window.spotTogglePan = function () {
+    if (S.view !== "play") return;
+    setPan(!S.pan);
+  };
+  window.addEventListener("storage", function (e) { if (e.key === "danigPan") setPan(e.newValue !== "0", true); }); // the jukebox page changed it
+
   /* The three picker buttons: click = next. Mouse clicks never take focus, so Space always means play. */
   function buildPickers() {
     [["instBtn", nextInstrument], ["sceneBtn", nextScene]].forEach(function (p) {
@@ -2145,6 +2212,7 @@
       $("preset").appendChild(o);
     });
     $("preset").addEventListener("change", function () {
+      if (S.busy) { this.value = S.idx; return; } // loading: stay on this preset
       showItem(+this.value);
     });
 
@@ -2156,7 +2224,7 @@
     showItem(0, true);
 
     function go(d) {
-      if (S.view === "menu")
+      if (S.view === "menu" && !S.busy)
         showItem((S.idx + d + ITEMS.length) % ITEMS.length);
     }
     $("start").addEventListener("click", enter);
@@ -2180,7 +2248,7 @@
     document.addEventListener(
       "touchend",
       function (e) {
-        if (S.view !== "menu" || sx === null) return;
+        if (S.view !== "menu" || sx === null || S.busy) return;
         if (e.target.closest && e.target.closest("#source")) {
           sx = null;
           return;
@@ -2283,7 +2351,7 @@
         if (!onBtn) enter();
       } else if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
         var d = e.key === "ArrowRight" ? 1 : -1;
-        if (S.view === "menu")
+        if (S.view === "menu" && !S.busy)
           showItem((S.idx + d + ITEMS.length) % ITEMS.length);
       }
     });

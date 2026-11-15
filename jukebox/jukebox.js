@@ -8,43 +8,69 @@ window.EJ = window.EJ || {};
   function $(id) { return document.getElementById(id); }
   EJ.dataType = 'temp';
 
-  // ================= 0. Loading screen: fills to 100% and never goes backwards =================
+  // ================= 0. Loading screen: logo, orbiting notes, a bar that only ever fills =================
+  // Used twice: once at start-up (fonts + legend pictures), and again every time a track's video is loaded.
+  // The player screen is not shown, and no sound starts, until this reaches 100%.
   var Loader = (function () {
     var el = $('loader'), fill = $('lfill'), pct = $('lpct'), bar = $('lbar');
-    var embedded = window.parent !== window;        // inside the DANIG carousel: stay up until the player opens
-    var t0 = performance.now(), MIN_MS = 1400, target = 0.06, shown = 0, parts = { fonts: 0, legends: 0 }, total = 0, got = 0, finished = false;
-    function set() { target = Math.max(target, Math.min(1, 0.06 + 0.1 * parts.fonts + 0.84 * parts.legends)); }
+    var embedded = window.parent !== window;        // inside the DANIG carousel: the first load continues straight into the track's video
+    var parts = { fonts: 0, legends: 0 }, total = 0, got = 0, hideT = null;
+    var st = { on: true, boot: true, began: false, t0: performance.now(), min: 1400, target: 0.06, shown: 0,
+               wb: embedded ? 0.4 : 1, wv: embedded ? 0.6 : 0, vp: 0, needVideo: embedded, videoDone: false, onDone: null };
     function paint() {
-      var p = Math.round(shown * 100);
+      var p = Math.round(st.shown * 100);
       fill.style.width = p + '%'; pct.textContent = p + '%'; bar.setAttribute('aria-valuenow', p);
     }
+    function want() {
+      var b = Math.min(1, 0.06 + 0.1 * parts.fonts + 0.84 * parts.legends);
+      return Math.min(1, st.wb * b + st.wv * st.vp);
+    }
     function finish() {
-      finished = true; shown = 1; paint();
+      st.on = false; st.shown = 1; paint();
       el.classList.add('done'); el.setAttribute('aria-busy', 'false');
-      setTimeout(function () { el.hidden = true; }, 700);
-      if (document.body.classList.contains('home')) { var b = $('homeStart'); if (b) b.focus(); }
+      clearTimeout(hideT); hideT = setTimeout(function () { if (!st.on) el.hidden = true; }, 700);
+      var wasBoot = st.boot; st.boot = false;
+      if (wasBoot && document.body.classList.contains('home')) { var b = $('homeStart'); if (b) b.focus(); }
+      var cb = st.onDone; st.onDone = null; if (cb) cb();
     }
     function tick(now) {
-      if (finished) return;
-      var ready = target >= 1 && now - t0 >= MIN_MS;
-      shown = Math.min(target, shown + Math.max(0.004, (target - shown) * 0.08));   // eases up, never down
+      if (!st.on) return;
+      if (embedded && st.boot && !st.began && now - st.t0 > 8000) { st.needVideo = false; st.wb = 1; st.wv = 0; }   // nobody asked for a video: open normally
+      st.target = Math.max(st.target, want());
+      var ready = st.target >= 1 && now - st.t0 >= st.min && (!st.needVideo || st.videoDone);
+      st.shown = Math.min(st.target, st.shown + Math.max(0.004, (st.target - st.shown) * 0.08));   // eases up, never down
       paint();
-      var open = !embedded || document.body.classList.contains('playing') || now - t0 > 8000;
-      if (shown >= 1 && ready && open) return finish();
-      if (shown >= target && target >= 1 && !ready) { /* waiting out the minimum time */ }
+      if (st.shown >= 1 && ready) return finish();
       requestAnimationFrame(tick);
     }
-    parts.legends = 0;
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { parts.fonts = 1; set(); }, function () { parts.fonts = 1; set(); });
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { parts.fonts = 1; }, function () { parts.fonts = 1; });
     else parts.fonts = 1;
-    set();
     requestAnimationFrame(tick);
     return {
-      expect: function (n) { total = n; if (!n) { parts.legends = 1; set(); } },
-      step: function () { got++; parts.legends = total ? Math.min(1, got / total) : 1; set(); }
+      expect: function (n) { total = n; if (!n) parts.legends = 1; },
+      step: function () { got++; parts.legends = total ? Math.min(1, got / total) : 1; },
+      ready: function () { return parts.legends >= 1; },             // every legend picture has been read
+      begin: function () {                                          // a track's video is about to load
+        if (st.on && st.boot) { st.began = true; st.needVideo = true; return; }   // first load: same bar keeps filling
+        clearTimeout(hideT);
+        st = { on: true, boot: false, began: true, t0: performance.now(), min: 900, target: 0.03, shown: 0, wb: 0, wv: 1, vp: 0, needVideo: true, videoDone: false, onDone: null };
+        el.hidden = false; void el.offsetWidth; el.classList.remove('done'); el.setAttribute('aria-busy', 'true');
+        paint(); requestAnimationFrame(tick);
+      },
+      progress: function (p) { st.vp = Math.max(st.vp, Math.min(1, p)); },
+      end: function (cb) { st.vp = 1; st.videoDone = true; st.onDone = cb; },
+      fail: function () {                                           // cancelled or failed: leave the loading screen
+        st.on = false; st.onDone = null; st.began = false; st.needVideo = false;
+        el.setAttribute('aria-busy', 'false');
+        if (embedded) return;                                       // the carousel hides this whole page; keep the screen up so nothing flashes
+        el.classList.add('done'); clearTimeout(hideT); hideT = setTimeout(function () { if (!st.on) el.hidden = true; }, 700);
+        if (st.boot) { st.boot = false; var b = $('homeStart'); if (b && document.body.classList.contains('home')) b.focus(); }
+      }
     };
   })();
-
+  EJ.isReady = function () { return Loader.ready(); };   // the DANIG carousel waits for this before it opens a track
+  EJ.loading = false;                                    // true while a track's video is loading
+  EJ.loadError = '';                                     // the reason, if the last load failed
 
   // ================= 1. Legends: [value, r, g, b] per colour =================
   // temp = NASA T2M near-surface temperature, -40 to 40 °C, a smooth gradient (grey stays "no data").
@@ -234,7 +260,8 @@ window.EJ = window.EJ || {};
   // PAD: two detuned waves per row (louder, brighter, buzzier with heat). DROPS: drips or ice chimes (cold / ticks).
   // NOISE: filtered noise bed. DRONE: quiet A + E so calm areas are never silent.
   var ac = null, master, pan, revSend, lowpass, noiseGain, dropBus, taps = {}, voices = [], drones = [], nextTime = 0;
-  var A = EJ.audio = { playing: false };
+  var A = EJ.audio = { playing: false, panOn: true };
+  try { A.panOn = localStorage.getItem('danigPan') !== '0'; } catch (e) {}   // P toggles it; shared with the DANIG page
   var SCALES = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
   function noteFreq(i, base, scale) { return 440 * Math.pow(2, (base + Math.floor(i / 5) * 12 + SCALES[scale || 'major'][i % 5] - 69) / 12); }
   function tap(key) { // analyser for one layer; it only listens
@@ -318,6 +345,7 @@ window.EJ = window.EJ || {};
       nextTime += step;
     }
   }, 30);
+  A.prime = function () { if (!ac) build(); if (ac.state === 'suspended') ac.resume(); };   // called inside the key press or click, so browsers allow sound later
   A.start = function (volume) {
     if (!ac) build();
     if (ac.state === 'suspended') ac.resume();
@@ -353,7 +381,7 @@ window.EJ = window.EJ || {};
     lowpass.frequency.setTargetAtTime(v.cutoff[0] + EJ.meanHeat * (v.cutoff[1] - v.cutoff[0]), now, 0.1);
     noiseGain.gain.setTargetAtTime(EJ.meanRain * v.hiss, now, 0.15);
     drones.forEach(function (g) { g.gain.setTargetAtTime(0.03, now, 0.2); });
-    pan.pan.setTargetAtTime(sweepPan(pos), now, 0.05);
+    pan.pan.setTargetAtTime(A.panOn ? sweepPan(pos) : 0, now, 0.05);   // pan off = centred
   };
 
   // ================= 6. Spectrum: one live bar per layer =================
@@ -430,20 +458,20 @@ window.EJ = window.EJ || {};
     if (t.indexOf('image') === 0 || /\.(png|jpe?g|gif|webp|bmp|avif|heic|heif)$/i.test(n)) return 'image';
     return null;
   }
-  function loadFile(f) {
+  function loadFile(f, done) {   // done(true) once the first frame is ready, done(false) if it could not be opened
     if (!f) return;
     var kind = kindOf(f);
-    if (!kind) { announce('That file is not an image or video. Try a PNG, JPG, MP4, MOV or WebM.'); return; }
+    if (!kind) { announce('That file is not an image or video. Try a PNG, JPG, MP4, MOV or WebM.'); if (done) done(false); return; }
     if (src && src.kind === 'video') src.el.pause();
     if (objUrl) URL.revokeObjectURL(objUrl);
     objUrl = URL.createObjectURL(f);
     say('Loading ' + f.name + '…');
-    function use(k, el) { src = { kind: k, el: el, name: f.name }; announce('Source: ' + f.name + '. Colors are matched to the ' + EJ.map().name.toLowerCase() + ' legend.'); }
+    function use(k, el) { src = { kind: k, el: el, name: f.name }; announce('Source: ' + f.name + '. Colors are matched to the ' + EJ.map().name.toLowerCase() + ' legend.'); if (done) done(true); }
     if (kind === 'video') {
       var v = document.createElement('video'), shown = false;
       v.muted = true; v.loop = true; v.playsInline = true;
       v.setAttribute('playsinline', ''); v.setAttribute('muted', '');
-      v.onerror = function () { announce('This browser could not play that video. Try an MP4 (H.264) or a still image.'); };
+      v.onerror = function () { announce('This browser could not play that video. Try an MP4 (H.264) or a still image.'); if (done && !shown) { shown = true; done(false); } };
       v.onloadeddata = function () {
         if (shown) return; shown = true; use('video', v);
         var p = v.play(); if (p && p.catch) p.catch(function () { say('Tap the picture to start the video.'); });
@@ -452,7 +480,7 @@ window.EJ = window.EJ || {};
     } else {
       var im = new Image();
       im.onload = function () { use('image', im); };
-      im.onerror = function () { announce('Could not open that image. Try a JPG or PNG.'); };
+      im.onerror = function () { announce('Could not open that image. Try a JPG or PNG.'); if (done) done(false); };
       im.src = objUrl;
     }
   }
@@ -511,21 +539,44 @@ window.EJ = window.EJ || {};
     EJ.audio.applyVoice();
   }
   function setSpeed(sec) { $('speed').value = 46 - sec; $('spO').textContent = sec + ' s'; t0 = performance.now(); }
-  function startTrack(i) { // switch to track i: map, sweep time, and its video if it has one
+  function fetchBlob(url, onProg) {   // like fetch().blob(), but reports how much has arrived (0 to 1)
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+      var len = +r.headers.get('Content-Length') || 0, type = r.headers.get('Content-Type') || 'video/mp4';
+      if (!r.body || !r.body.getReader || !len) return r.blob();
+      var rd = r.body.getReader(), chunks = [], got = 0;
+      return (function pump() {
+        return rd.read().then(function (x) {
+          if (x.done) return new Blob(chunks, { type: type });
+          chunks.push(x.value); got += x.value.length; onProg(Math.min(1, got / len)); return pump();
+        });
+      })();
+    });
+  }
+  function startTrack(i, done) { // switch to track i: map, sweep time, and its video if it has one. done(true) only when the video is fully loaded.
     var T = tracks(); if (!T.length) return;
     cur = (i + T.length) % T.length;
     var p = T[cur]; applyMap(p); setSpeed(p.sweep || 24);
     var mine = ++loadSeq;                       // only the newest request may put its video on screen
-    if (!p.video) return;
-    fetch(p.video).then(function (r) { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.blob(); })
-      .then(function (b) { if (mine !== loadSeq) return; loadFile(new File([b], p.video.split('/').pop(), { type: b.type || 'video/mp4' })); t0 = performance.now(); })
-      .catch(function (err) { if (mine !== loadSeq) return; announce('Could not load ' + p.video + ' (' + err.message + '). Serve this folder with: python3 -m http.server'); });
+    if (!p.video) { if (done) done(true); return; }
+    fetchBlob(p.video, function (f) { if (mine === loadSeq) Loader.progress(f * 0.8); })
+      .then(function (b) {
+        if (mine !== loadSeq) return;
+        loadFile(new File([b], p.video.split('/').pop(), { type: b.type || 'video/mp4' }), function (ok) {
+          if (mine !== loadSeq) return;
+          if (ok) t0 = performance.now(); else EJ.loadError = 'Could not open ' + p.video + '.';
+          if (done) done(ok);
+        });
+      })
+      .catch(function (err) {
+        if (mine !== loadSeq) return;
+        EJ.loadError = 'Could not load ' + p.video + ' (' + err.message + '). Serve this folder with: python3 -m http.server';
+        announce(EJ.loadError); if (done) done(false);
+      });
   }
   $('speed').oninput = function () { $('spO').textContent = (46 - parseFloat(this.value)) + ' s'; t0 = performance.now(); };
   $('vol').oninput = function () { EJ.audio.setVolume(parseFloat(this.value)); };
-  function trackStep(d) { startTrack(cur + d); announce(tracks()[cur].name + '. Track ' + (cur + 1) + ' of ' + tracks().length + '.'); }
-  $('tPrev').onclick = function () { trackStep(-1); };
-  $('tNext').onclick = function () { trackStep(1); };
+  // A track is chosen on the playlist screen only. Inside the player the track can not change, so the picture, legend and sound never get out of step.
 
   function setPlaying(on) {
     var b = $('play');
@@ -534,6 +585,13 @@ window.EJ = window.EJ || {};
     b.textContent = on ? 'Stop' : 'Play'; b.setAttribute('aria-pressed', on ? 'true' : 'false');
   }
   $('play').onclick = function () { setPlaying(!EJ.audio.playing); };
+  function setPan(on, quiet) {
+    A.panOn = on;
+    try { localStorage.setItem('danigPan', on ? '1' : '0'); } catch (e) {}
+    if (ac && !on) pan.pan.setTargetAtTime(0, ac.currentTime, 0.05);
+    if (!quiet) announce(on ? 'Panning on. The sound moves from your left ear to your right as the line sweeps west to east.' : 'Panning off. The sound stays centered.');
+  }
+  window.addEventListener('storage', function (e) { if (e.key === 'danigPan') setPan(e.newValue !== '0', true); });   // keep both pages in step
   function describeNow() { var s = $('sr'); s.textContent = ''; setTimeout(function () { s.textContent = describe(); }, 50); }
   $('describe').onclick = describeNow;
 
@@ -602,12 +660,33 @@ window.EJ = window.EJ || {};
   // ---------- Moving between screens ----------
   function leaveHome() { screen('menu'); $('start').focus(); announce($('pTitle').textContent + '. Press Enter to play. Use the left and right arrow keys to change track.'); }
   function goHome() { loadSeq++; if (src && src.kind === 'video') src.el.pause(); if (EJ.audio.playing) setPlaying(false); screen('home'); $('homeStart').focus(); announce('Earth Jukebox. NASA Earth data, played as sound. Press Enter to start.'); }
+  var entering = false, enterSeq = 0, embedded = window.parent !== window;
   function enterPlayer() { // the click or key press is the user gesture browsers need before audio can start
-    if (!tracks().length) return;
-    screen('play'); startTrack(cur);
-    if (!EJ.audio.playing) setPlaying(true);
-    if (!looping) { looping = true; requestAnimationFrame(frame); }
-    $('play').focus(); announce('Playing ' + tracks()[cur].name + '. Press Space to stop, Escape to go back.');
+    if (!tracks().length || entering) return;
+    if (!Loader.ready()) { announce('Still reading the legends. One moment, then press Play again.'); return; }
+    EJ.audio.prime();                                  // unlock sound now; nothing plays until the video is ready
+    var mine = ++enterSeq, name = tracks()[cur].name;
+    entering = EJ.loading = true; EJ.loadError = '';
+    Loader.begin();
+    announce('Loading ' + name + '. Please wait. Press Escape to cancel.');
+    startTrack(cur, function (ok) {
+      if (mine !== enterSeq) return;                   // cancelled
+      if (!ok) { entering = EJ.loading = false; Loader.fail(); return; }
+      Loader.end(function () {                         // the bar has reached 100%: only now does the player open
+        if (mine !== enterSeq) return;
+        entering = EJ.loading = false;
+        screen('play');
+        if (!EJ.audio.playing) setPlaying(true);
+        if (!looping) { looping = true; requestAnimationFrame(frame); }
+        $('play').focus(); announce('Playing ' + tracks()[cur].name + '. Press Space to stop, Escape to go back.');
+      });
+    });
+  }
+  function cancelEnter() {
+    if (!entering) return;
+    enterSeq++; loadSeq++; entering = EJ.loading = false;
+    Loader.fail();
+    announce('Loading cancelled. ' + $('pTitle').textContent + '.');
   }
   function leavePlayer() { loadSeq++; if (src && src.kind === 'video') src.el.pause(); if (EJ.audio.playing) setPlaying(false); screen('menu'); renderMenu(); $('start').focus(); announce('Playlist. ' + $('pTitle').textContent + '.'); }
   $('homeStart').onclick = leaveHome;
@@ -648,9 +727,8 @@ window.EJ = window.EJ || {};
     ['Playlist', [[K('&larr;', '&rarr;'), 'Previous or next track'], [K('1') + ' to ' + K('9'), 'Jump to a track'],
       [K('Enter') + ' or ' + K('Space'), 'Play the track'], [K('A'), 'About'], [K('?'), 'Setting and shortcuts'],
       [K('T'), 'Change text size'], [K('Esc'), 'Back one screen']]],
-    ['Player', [[K('Space') + ' or ' + K('P'), 'Play or stop'], [K('S'), 'Stop the sound'], [K('R'), 'Restart the sweep from the west'],
-      [K('&larr;', '&rarr;'), 'Previous or next track'], [K('1') + ' to ' + K('9'), 'Jump to a track'],
-      [K('D'), 'Describe this moment'], [K('Esc'), 'Back to the playlist']]],
+    ['Player', [[K('Space'), 'Play or stop'], [K('P'), 'Panning on or off'], [K('S'), 'Stop the sound'], [K('R'), 'Restart the sweep from the west'],
+      [K('D'), 'Describe this moment'], [K('Esc'), 'Back to the playlist (the track is chosen there)']]],
     ['Player, sound and media', [[K('[') + ' ' + K(']'), 'Slower or faster sweep'], [K('-') + ' ' + K('='), 'Volume down or up'],
       [K(',') + ' ' + K('.'), 'Video back or forward 5 seconds'], [K('O'), 'Load an image or video'], [K('L'), 'Upload a legend'],
       [K('T'), 'Change text size'], [K('?'), 'Open or close this list'], [K('&larr;', '&rarr;'), 'In this list: previous or next page']]]
@@ -706,20 +784,21 @@ window.EJ = window.EJ || {};
     }
     var n = parseInt(k, 10);
     if (scr === 'menu') {
+      if (entering) { if (k === 'Escape') cancelEnter(); return; }   // loading: nothing else is live
+      if (embedded && (k === 'ArrowLeft' || k === 'ArrowRight')) return;   // the DANIG carousel owns the arrow keys
       if (k === 'Escape') goHome();
       else if (k === 'ArrowLeft') { e.preventDefault(); menuGo(-1); }
       else if (k === 'ArrowRight') { e.preventDefault(); menuGo(1); }
-      else if (n >= 1 && n <= 9) menuJump(n - 1);
+      else if (n >= 1 && n <= 9) { if (!embedded || !e.isTrusted) menuJump(n - 1); }   // embedded: only the carousel (not a person) picks the track
       else if ((k === 'Enter' || k === ' ') && !onBtn) { e.preventDefault(); enterPlayer(); }
       return;
     }
     // player
     if (k === 'Escape') { leavePlayer(); return; }
     if (isRange && /^(Arrow|Home$|End$|Page)/.test(k)) return; // sliders keep their own arrow keys
-    if (k === 'ArrowLeft') { e.preventDefault(); trackStep(-1); }
-    else if (k === 'ArrowRight') { e.preventDefault(); trackStep(1); }
-    else if (n >= 1 && n <= 9) { if (n - 1 < tracks().length && n - 1 !== cur) { startTrack(n - 1); announce(tracks()[cur].name + '. Track ' + (cur + 1) + ' of ' + tracks().length + '.'); } }
-    else if (lk === 'p' || (k === ' ' && !onBtn)) { e.preventDefault(); $('play').click(); announce(EJ.audio.playing ? 'Playing.' : 'Stopped.'); }
+    if (k === 'ArrowLeft' || k === 'ArrowRight' || (n >= 1 && n <= 9)) { e.preventDefault(); announce('The track can not be changed while playing. Press Escape to go back to the playlist.'); }
+    else if (lk === 'p') { e.preventDefault(); setPan(!A.panOn); }
+    else if (k === ' ' && !onBtn) { e.preventDefault(); $('play').click(); announce(EJ.audio.playing ? 'Playing.' : 'Stopped.'); }
     else if (lk === 's') { if (EJ.audio.playing) { $('play').click(); announce('Stopped.'); } else announce('Already silent.'); }
     else if (lk === 'r') { t0 = performance.now(); announce('Back at the west edge.'); }
     else if (lk === 'd') describeNow();

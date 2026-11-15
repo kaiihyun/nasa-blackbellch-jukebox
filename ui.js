@@ -93,7 +93,7 @@
       [K("&larr;", "&rarr;", "&uarr;", "&darr;"), "Move the listening spot"], [K("N") + " / " + K("Shift") + "+" + K("N"), "Next or previous named place"],
       [K("R"), "Restart from the beginning"], [K("K"), "Play the sound key (pauses playback)"], [K("D"), "Describe this moment"]]],
     ["Player, sound", [[K("I") + " / " + K("Shift") + "+" + K("I"), "Next or previous instrument"],
-      [K("U") + " / " + K("Shift") + "+" + K("U"), "Next or previous scene layer"], [K("V"), "Change video size"],
+      [K("U") + " / " + K("Shift") + "+" + K("U"), "Next or previous scene layer"], [K("V"), "Change video size"], [K("P"), "Panning on or off (left and right ear)"],
       [K("[") + " " + K("]"), "Slower or faster (restarts playback)"], [K("-") + " " + K("="), "Volume down or up"], [K("Esc"), "Back to the menu"]]],
     ["Map", [[K("M"), "Focus the map"], [K("Click") + " or " + K("Tap"), "Place the spot"], [K("?"), "Open or close this list"], [K("&larr;", "&rarr;"), "In this list: previous or next page"]]]
   ], kp = 0;
@@ -151,6 +151,7 @@
     else if (lk === "s") {
       if (body.classList.contains("running")) $("play").click(); else say("Already silent.");
     }
+    else if (lk === "p") { if (window.spotTogglePan) window.spotTogglePan(); }
     else if (lk === "m") { $("map").focus(); say("Map focused. Arrow keys move the listening spot."); }
     else if (lk === "n") { if (window.spotNextPlace) window.spotNextPlace(e.shiftKey ? -1 : 1); }
     else if (lk === "i") { var fn = e.shiftKey ? window.spotPrevInstrument : window.spotNextInstrument; if (fn) fn(); }
