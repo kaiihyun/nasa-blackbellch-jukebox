@@ -158,3 +158,14 @@ html::after{background-image:radial-gradient(1px 1px at 40px 100px,#fff 50%,tran
   .src details,.src h3{display:none}
   .sheet{padding:14px 22px}.sheet table{min-height:0}.sheet td{padding:2px 0}
 }
+
+/* video lives in its own box and can never cover the title or the text */
+.vidfig{container-type:size;overflow:hidden;padding:3px}
+.vwrap{
+  width:min(100%,calc((100dvh - var(--res))*var(--vr)));            /* old browsers */
+  width:min(calc(100cqw*var(--vs,1)),calc(100cqh*var(--vs,1)*var(--vr)));
+}
+.ptitle{flex:1;min-width:0}
+.vsize{display:flex;align-items:center;gap:8px;margin:0;font-size:.85rem;font-weight:500;white-space:nowrap}
+.vsize input{width:clamp(90px,12vw,160px);min-height:32px}
+@media (max-width:640px){.vsize span{display:none}.vsize input{width:90px}}

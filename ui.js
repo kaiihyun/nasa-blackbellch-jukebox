@@ -67,6 +67,22 @@
   function moveSize(d) { var j = (si + d + SIZES.length) % SIZES.length; applySize(j); radios[j].focus(); }
   try { applySize(Math.max(0, Math.min(3, +localStorage.getItem("danigSize") || 0)), true); } catch (e) { applySize(0, true); }
 
+  /* ---- video size ---- */
+  var vsl = $("vsize"), VS = [100, 75, 50, 35];
+  function applyVideo(p, say_) {
+    p = Math.max(30, Math.min(100, p));
+    vsl.value = p;
+    document.documentElement.style.setProperty("--vs", p / 100);
+    try { localStorage.setItem("danigVideo", p); } catch (e) {}
+    if (say_) say("Video size " + p + " percent.");
+  }
+  vsl.addEventListener("input", function () { applyVideo(+vsl.value); });
+  vsl.addEventListener("change", function () { say("Video size " + vsl.value + " percent."); vsl.blur(); });
+  try { var sv = +localStorage.getItem("danigVideo"); if (sv) applyVideo(sv); } catch (e) {}
+  function cycleVideo() {
+    applyVideo(VS.filter(function (x) { return x < +vsl.value; })[0] || VS[0], true);
+  }
+
   /* ---- keyboard shortcut pages (match the keys wired in app.js and below) ---- */
   var K = function () { return [].slice.call(arguments).map(function (k) { return "<kbd>" + k + "</kbd>"; }).join(" "); };
   var PAGES = [
@@ -77,7 +93,7 @@
       [K("&larr;", "&rarr;", "&uarr;", "&darr;"), "Move the listening spot"], [K("N") + " / " + K("Shift") + "+" + K("N"), "Next or previous named place"],
       [K("R"), "Restart from the beginning"], [K("K"), "Play the sound key (pauses playback)"], [K("D"), "Describe this moment"]]],
     ["Player, sound", [[K("I") + " / " + K("Shift") + "+" + K("I"), "Next or previous instrument"],
-      [K("U") + " / " + K("Shift") + "+" + K("U"), "Next or previous scene layer"], [K("C"), "Major or minor pentatonic"],
+      [K("U") + " / " + K("Shift") + "+" + K("U"), "Next or previous scene layer"], [K("C"), "Major or minor pentatonic"], [K("V"), "Change video size"],
       [K("[") + " " + K("]"), "Slower or faster (restarts playback)"], [K("-") + " " + K("="), "Volume down or up"], [K("Esc"), "Back to the menu"]]],
     ["Map", [[K("M"), "Focus the map"], [K("Click") + " or " + K("Tap"), "Place the spot"], [K("?"), "Open or close this list"]]]
   ], kp = 0;
@@ -130,6 +146,7 @@
     }
     if (lk === "k") $("key").click();
     else if (lk === "d") $("describe").click();
+    else if (lk === "v") cycleVideo();
     else if (lk === "s") {
       if (body.classList.contains("running")) $("play").click(); else say("Already silent.");
     }
