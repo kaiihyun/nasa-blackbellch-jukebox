@@ -41,8 +41,14 @@
     s.dispatchEvent(new Event("change"));
   }
   $("homeStart").addEventListener("click", leaveHome);
-  $("exitMenu").addEventListener("click", goModes);
-  $("exitModes").addEventListener("click", goHome);
+  /* One Exit button, always at the top left: it steps back one screen (same as Esc). */
+  $("exitBtn").addEventListener("click", function () {
+    var c = body.classList;
+    if (c.contains("home")) return;
+    if (c.contains("modes")) goHome();
+    else if (c.contains("playing") || c.contains("form")) { if (window.spotBack) window.spotBack(); }
+    else goModes();
+  });
   $("modeLoc").addEventListener("click", function () { chooseMode("location"); });
   $("modeSweep").addEventListener("click", function () { chooseMode("sweep"); });
   $("prev").addEventListener("click", function () { go(-1); });

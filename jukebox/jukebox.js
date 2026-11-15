@@ -734,8 +734,7 @@ window.EJ = window.EJ || {};
   };
   $('homeStart').onclick = leaveHome;
   $('start').onclick = enterPlayer;
-  $('exitMenu').onclick = goHome;
-  $('back').onclick = leavePlayer;
+  $('exitBtn').onclick = function () { var s = screenName(); if (s === 'play') leavePlayer(); else if (s === 'menu') goHome(); };   // one Exit button, top left: back one screen
 
   // ---------- About and Setting sheets ----------
   function openDlg(d) {

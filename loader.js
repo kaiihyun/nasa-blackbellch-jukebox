@@ -12,22 +12,25 @@
   "use strict";
   var css =
     ".dl{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;" +
-    "background:radial-gradient(120% 60% at 50% 115%,#17407a 0%,#0b2a52 36%,transparent 64%),#02050b;color:#fff;font-family:var(--font,system-ui,sans-serif);" +
+    "isolation:isolate;background:linear-gradient(rgba(2,5,11,.3),rgba(2,5,11,.6)),url(assets/earth.png) center bottom/cover no-repeat,radial-gradient(120% 55% at 50% 118%,#2b78c8 0%,#0b2a52 38%,transparent 62%),#02050b;color:#fff;font-family:var(--font,system-ui,sans-serif);" +
     "transition:opacity .2s ease,visibility 0s}" +
     ".dl.done{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .55s ease,visibility 0s linear .55s}" +
     ".dl .lstage{position:relative;width:260px;height:260px;display:grid;place-items:center}" +
-    ".dl .llogo{width:156px;height:auto;color:#fff;overflow:visible}" +
-    ".dl .llogo .ring{stroke:var(--accent,#5aa9ee);animation:dlpulse 2.4s ease-in-out infinite;transform-origin:48px 16px;transform-box:view-box}" +
+    ".dl .llogo{position:relative;width:120px;height:auto;animation:dlpulse 2.4s ease-in-out infinite}" +
+    ".dl::before,.dl::after{content:'';position:absolute;inset:0;z-index:-1;pointer-events:none;-webkit-mask-image:linear-gradient(#000 38%,transparent 76%);mask-image:linear-gradient(#000 38%,transparent 76%)}" +
+    ".dl::before{background-image:radial-gradient(1px 1px at 20px 30px,#fff 50%,transparent),radial-gradient(1px 1px at 90px 70px,#dfe9ff 50%,transparent),radial-gradient(1.5px 1.5px at 150px 120px,#fff 50%,transparent),radial-gradient(1px 1px at 60px 160px,#fff 50%,transparent);background-size:200px 200px,230px 230px,310px 310px,170px 170px;animation:dltwinkle 5s ease-in-out infinite alternate}" +
+    ".dl::after{background-image:radial-gradient(1px 1px at 40px 100px,#fff 50%,transparent),radial-gradient(2px 2px at 180px 40px,#cfe0ff 50%,transparent),radial-gradient(1px 1px at 110px 190px,#fff 50%,transparent);background-size:260px 260px,370px 370px,190px 190px;animation:dltwinkle 7s ease-in-out -3s infinite alternate}" +
+    "@keyframes dltwinkle{from{opacity:.55}to{opacity:1}}" +
     ".dl .orbit{position:absolute;inset:0;animation:dlspin 9s linear infinite}" +
     ".dl .lnote{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;transform:rotate(var(--a)) translateY(-112px) rotate(calc(-1 * var(--a)))}" +
     ".dl .lnote svg{display:block;width:100%;height:100%;fill:var(--accent,#5aa9ee);animation:dlunspin 9s linear infinite;filter:drop-shadow(0 0 6px rgba(90,169,238,.55))}" +
     ".dl .lnote:nth-child(2n) svg{fill:#fff}" +
-    ".dl .lbar{width:min(300px,68vw);height:8px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden}" +
+    ".dl .lbar{width:min(300px,68vw);height:8px;border-radius:4px;background:rgba(255,255,255,.16);overflow:hidden}" +
     ".dl .lbar i{display:block;height:100%;width:0;border-radius:inherit;background:var(--accent,#5aa9ee);box-shadow:0 0 14px rgba(90,169,238,.7)}" +
     ".dl .lpct{margin:0;font-weight:500;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:#dfe7f3}" +
     ".dl .lhint{margin:0;font-size:.8rem;color:#c9d3e2}" +
     "@keyframes dlspin{to{transform:rotate(360deg)}}@keyframes dlunspin{to{transform:rotate(-360deg)}}@keyframes dlpulse{50%{transform:scale(1.07);opacity:.75}}" +
-    "@media (prefers-reduced-motion:reduce){.dl .orbit,.dl .lnote svg,.dl .llogo .ring{animation:none}.dl,.dl.done{transition:none}}";
+    "@media (prefers-reduced-motion:reduce){.dl .orbit,.dl .lnote svg,.dl .llogo,.dl::before,.dl::after{animation:none}.dl,.dl.done{transition:none}}";
   var st = document.createElement("style");
   st.textContent = css;
   document.head.appendChild(st);
@@ -48,7 +51,7 @@
     '<span class="lnote" style="--a:180deg"><svg><use href="#dn1"/></svg></span>' +
     '<span class="lnote" style="--a:270deg"><svg><use href="#dn2"/></svg></span>' +
     "</div>" +
-    '<svg class="llogo" viewBox="0 0 96 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g class="ring"><circle cx="48" cy="16" r="11"/><ellipse cx="48" cy="16" rx="5" ry="11"/><path d="M37 16h22"/></g><path d="M2 16h14l3-6 4 12 4-9 3 3h6M94 16H82l-3-6-4 12-4-9-2 3"/></svg>' +
+    '<img class="llogo" src="assets/danig_logo.svg" alt="">' +
     "</div>" +
     '<div class="lbar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>' +
     '<p class="lpct">0%</p><p class="lhint">Esc to cancel</p>';

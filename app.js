@@ -2318,9 +2318,10 @@
     $("cancelForm").addEventListener("click", function () {
       closeForm();
     });
-    $("back").addEventListener("click", function () {
+    window.spotBack = function () {   // the Exit button in the top bar (ui.js) calls this from the player and the upload form
       if (S.view === "play") leave();
-    });
+      else if (S.formOpen) closeForm();
+    };
     var sx = null,
       sy = 0;
     document.addEventListener(

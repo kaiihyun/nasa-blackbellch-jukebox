@@ -8,15 +8,14 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>DANIG: the world, through sound</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" /><link rel="stylesheet" href="style.css" /><link rel="stylesheet" href="glass.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" /><link rel="stylesheet" href="style.css" /><link rel="stylesheet" href="glass.css" /><link rel="stylesheet" href="kit.css" />
   </head>
   <body class="home">
     <a class="skip" href="#main">Skip to main content</a>
-    <header class="bar"><img class="logo" src="assets/danig_logo.svg" alt="Danig Logo"></img><button id="aboutBtn" type="button" class="btn pill" aria-keyshortcuts="A">About <kbd>A</kbd></button><button id="helpBtn" type="button" class="btn pill" aria-keyshortcuts="?"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.5 1 2-3.5zM12 8.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z"/></svg> Setting <kbd>?</kbd></button></header>
+    <header class="bar"><button id="exitBtn" type="button" class="btn sm" aria-keyshortcuts="Escape"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd></button><img class="logo" src="assets/danig_logo.svg" alt="DANIG"><div class="bar-end"><button id="aboutBtn" type="button" class="btn sm" aria-keyshortcuts="A">About <kbd>A</kbd></button><button id="helpBtn" type="button" class="btn sm" aria-keyshortcuts="?"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.5 1 2-3.5zM12 8.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z"/></svg> Setting <kbd>?</kbd></button></div></header>
 <div class="views">
       <section id="landing" class="landing" aria-label="Welcome"><img class="logo" src="assets/danig_logo.svg"  style="scale: 2; transform-origin: center;" alt="Danig Logo"/><h1>DANIG</h1><p class="tag">The world, through sound.</p><button id="homeStart" type="button" class="btn pill big">Start</button></section>
       <section id="modes" class="modes-screen" aria-label="Choose a mode">
-        <button id="exitModes" type="button" class="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd></button>
         <h2 class="mtitle">How do you want to listen?</h2>
         <div class="modegrid">
           <button id="modeLoc" type="button" class="modecard glass" aria-keyshortcuts="1">
@@ -36,7 +35,6 @@
           <div class="carousel"><button id="prev" type="button" class="arrow" tabindex="-1" aria-label="Previous dataset"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="mid">
             <div class="ghost l" id="ghostL" aria-hidden="true"></div><div class="ghost r" id="ghostR" aria-hidden="true"></div>
             <section id="blurb" class="blurb slide glass" aria-label="Selected dataset">
-              <button id="exitMenu" type="button" class="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd></button>
               <h2 id="pTitle"></h2>
               <div class="gradbox" aria-hidden="true"></div>
               <div id="slots" class="slots" role="group" aria-label="Upload your own files">
@@ -141,15 +139,6 @@
             <label class="vsize" for="vsize"><span>Video size <kbd>V</kbd></span>
               <input id="vsize" type="range" min="30" max="100" step="5" value="100" aria-label="Video size">
             </label>
-            <button
-              id="back"
-              type="button"
-              class="btn sm"
-              aria-label="Back to the menu"
-              aria-keyshortcuts="Escape"
-            >
-              <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd>
-            </button>
           </div>
           <figure class="vidfig">
             <figcaption class="sr">Source video. Click it to move the listening spot.</figcaption>

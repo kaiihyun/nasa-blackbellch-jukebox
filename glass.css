@@ -328,43 +328,9 @@ body.sweepup .mid .slots{display:flex}
 .slot.has svg{display:none}
 
 
-/* =====================================================================================
-   UNIFIED DESIGN SYSTEM. Loaded last, so these tokens and shared rules win.
-   Spacing: 8 inside a component, 12 between components in a stack, 16 to 24 between sections.
-   Radius : 28 panels, 20 media and drop zones, 16 cards, fields and tiles, 12 small tiles, pill for buttons.
-   Height : 44 controls, 36 small controls, 54 the main Play button.
-   ===================================================================================== */
-:root{
-  --sp-1:4px;--sp-2:8px;--sp-3:clamp(8px,1.6dvh,12px);--sp-4:clamp(10px,2dvh,16px);--sp-5:clamp(14px,3dvh,24px);--sp-6:clamp(18px,4dvh,32px);
-  --r-panel:28px;--r-media:20px;--r-tile:16px;--r-sm:12px;--r:28px;
-  --h-ctl:clamp(36px,5.6dvh,44px);--h-ctl-sm:clamp(30px,4.6dvh,36px);--h-big:clamp(44px,7dvh,54px);--mut:#c9d3e2;
-  --pad-card:clamp(16px,3dvh,28px) clamp(16px,3.5vw,32px);
-  --media-bd:2px solid rgba(255,255,255,.85);
-  --move:cubic-bezier(.22,.8,.24,1);--dur-out:.34s;--dur-in:.55s;
-}
-
-/* ---- buttons: one height scale, one padding rule, no stray margins ---- */
-.btn{min-height:var(--h-ctl);padding:0 var(--sp-5);display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);line-height:1.1}
-.btn.pill{padding:0 var(--sp-5)}
-.btn.sm{min-height:var(--h-ctl-sm);padding:0 var(--sp-4)}
-.btn.big{min-height:var(--h-big);height:var(--h-big);min-width:190px;margin:0;padding:0 var(--sp-6)}
-.btn kbd{margin-left:var(--sp-2)}
-.ctl2 .btn{padding:0 var(--sp-3)}
-.mixrow .btn.sm{min-height:32px;padding:0 var(--sp-3)}
-.btn.pick{justify-content:flex-start;min-height:48px;padding:var(--sp-2) var(--sp-3);gap:var(--sp-2)}
-.arrow{width:52px;height:52px}
-
-/* ---- fields and labels ---- */
-input,select{min-height:var(--h-ctl);padding:0 var(--sp-4);border-radius:var(--r-tile)}
-.src input,.src select,.ctrls select{min-height:var(--h-ctl);padding:0 var(--sp-4)}
-label{margin:0;font-weight:500}
-.ctrls label{margin:0 0 var(--sp-1);font-size:.85rem}
-.field{display:flex;flex-direction:column;gap:6px;min-width:0}
-.field label{font-size:.85rem;color:var(--mut)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-3)}
+/* Shared tokens, buttons, fields and the top bar live in kit.css (loaded after this file). The rules below are DANIG layout. */
 
 /* ---- surfaces ---- */
-.card,.glass.card{border-radius:var(--r-tile);padding:var(--sp-3)}
 #info-legends,.mixer{padding:var(--sp-3)}
 .mapfig figcaption{margin:0 0 var(--sp-2)}
 .stage,.rail,.ctrls{gap:var(--sp-3)}
@@ -373,7 +339,6 @@ label{margin:0;font-weight:500}
 .gradbox,.modeshot,video{border:var(--media-bd);border-radius:var(--r-media)}
 .upcol,.scenebtn,details{border-radius:var(--r-tile)}
 .igb{border-radius:var(--r-sm)}
-.bar{padding:var(--sp-3) var(--sp-5)}
 
 /* ---- sheets (About, Setting) ---- */
 .sheet{padding:var(--sp-5) var(--sp-6)}
@@ -385,9 +350,9 @@ label{margin:0;font-weight:500}
 /* ---- carousel card: spacing by gap, not by stray margins ---- */
 .slide{padding:var(--pad-card)}
 .mid .slide{gap:var(--sp-3)}
-.mid .slide h2{margin:0 88px}
+.mid .slide h2{margin:0}
 .blurb #pDesc,.blurb #pIdx{margin:0}
-.top{row-gap:var(--sp-5);column-gap:var(--sp-5);padding:var(--sp-4) clamp(24px,16vw,150px) 0}
+.top{row-gap:var(--sp-5);column-gap:var(--sp-5);padding:var(--sp-4) clamp(24px,16vw,150px) var(--sp-3)}
 
 /* ---- mode screen ---- */
 body.modes .modes-screen{gap:var(--sp-5);padding:0 var(--gap) var(--sp-5)}
@@ -439,10 +404,7 @@ body.form:not(.playing) .src{display:flex;flex-direction:column;gap:var(--sp-4);
 
 /* ---- small screens ---- */
 @media (max-width:640px){
-  .btn.big{min-height:48px;height:48px;min-width:150px;padding:0 var(--sp-5)}
   .top{row-gap:var(--sp-3);padding:var(--sp-3) 0 0}
-  .mid .slide h2{margin:var(--sp-5) 0 0}
-  .bar{padding:var(--sp-2) var(--sp-3)}
   .sheet{padding:var(--sp-4)}
   .modegrid{gap:var(--sp-3)}
   .modecard{padding:var(--sp-3) var(--sp-4)}
@@ -451,7 +413,6 @@ body.form:not(.playing) .src{display:flex;flex-direction:column;gap:var(--sp-4);
 }
 @media (max-height:560px){
   .sheet{padding:var(--sp-3) var(--sp-5)}
-  .mid .slide h2{margin:0 88px}
 }
 
 
@@ -460,7 +421,7 @@ body.form:not(.playing) .src{display:flex;flex-direction:column;gap:var(--sp-4);
    Content that could be too big is shrunk to fit: spacing and heights follow the screen height above,
    the side panel drops its least important parts, and fit.js scales the upload form and the About and Setting sheets as a last step.
    ===================================================================================== */
-html,body,.views,#main,.panel,.stage,.rail,.vidfig,.mixer{overflow:hidden;overflow:clip}
+html,body,.views,#main,.rail,.vidfig,.mixer{overflow:hidden;overflow:clip}
 html,body{overscroll-behavior:none}
 body.form:not(.playing) #main{overflow:hidden;overflow:clip}
 
@@ -477,7 +438,7 @@ dialog.sheet{overflow:visible;max-height:none}
 
 /* player side panel: the map is sized from the panel height, and the least important parts drop out first */
 @media (min-width:901px){
-  .rail{overflow:hidden;overflow:clip}
+  .rail{overflow:hidden;overflow:clip;padding:var(--sp-1)}
   .mapfig canvas{width:min(100%,44cqh);margin:0 auto}
 }
 @container (max-height:440px){#info-legends{display:none}}
