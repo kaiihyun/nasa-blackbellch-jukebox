@@ -29,6 +29,7 @@
     ".dl .lbar i{display:block;height:100%;width:0;border-radius:inherit;background:var(--accent,#5aa9ee);box-shadow:0 0 14px rgba(90,169,238,.7)}" +
     ".dl .lpct{margin:0;font-weight:500;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:#dfe7f3}" +
     ".dl .lhint{margin:0;font-size:.8rem;color:#c9d3e2}" +
+    "@media (hover:none){.dl .lhint{display:none}}" +
     "@keyframes dlspin{to{transform:rotate(360deg)}}@keyframes dlunspin{to{transform:rotate(-360deg)}}@keyframes dlpulse{50%{transform:scale(1.07);opacity:.75}}" +
     "@media (prefers-reduced-motion:reduce){.dl .orbit,.dl .lnote svg,.dl .llogo,.dl::before,.dl::after{animation:none}.dl,.dl.done{transition:none}}";
   var st = document.createElement("style");
@@ -54,12 +55,13 @@
     '<img class="llogo" src="assets/danig_logo.svg" alt="">' +
     "</div>" +
     '<div class="lbar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>' +
-    '<p class="lpct">0%</p><p class="lhint">Esc to cancel</p>';
+    '<p class="lpct">0%</p><button type="button" class="btn lcancel">Cancel</button><p class="lhint">Esc to cancel</p>';
   document.body.appendChild(el);
   var bar = el.querySelector(".lbar"), fill = el.querySelector(".lbar i"), pct = el.querySelector(".lpct");
 
   var on = false, target = 0, shown = 0, t0 = 0, vp = 0, finishing = false, hideT = null, cancel = null, resolveDone = null;
   var MIN_MS = 900;
+  el.querySelector(".lcancel").addEventListener("click", function () { if (cancel) cancel(); });
 
   function paint() {
     var p = Math.round(shown * 100);

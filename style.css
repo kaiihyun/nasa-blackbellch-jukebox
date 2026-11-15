@@ -148,7 +148,7 @@ dialog .btn{margin-top:var(--gap)}
 /* narrow screens: video on top, controls under it; the map, legend and spectrum step aside (click the video to pick a place) */
 @media (max-width:900px){
   .panel{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;--res:520px}
-  .mapfig,#info-legends,.mixer{display:none}
+  .mapfig,.mixer{display:none}
   .picks{grid-template-columns:repeat(3,1fr)}
   .pick{padding:4px 8px}
   .pick .ico{display:none}

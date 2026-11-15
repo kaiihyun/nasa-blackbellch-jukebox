@@ -1,7 +1,7 @@
 /* glass.css: the DANIG look. Loaded after style.css, so it only overrides.
    Put your Earth photo at assets/earth.png. Without it, a blue horizon gradient is drawn instead. */
 :root{--font:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;--accent:#5aa9ee;--on-accent:#04101f;
-  --glass:rgba(12,17,28,.52);--edge:rgba(255,255,255,.22);--panel:rgba(255,255,255,.07);--line:rgba(255,255,255,.2);--r:28px;
+  --glass:rgba(12,17,28,.34);--edge:rgba(255,255,255,.28);--panel:rgba(255,255,255,.07);--line:rgba(255,255,255,.2);--r:28px;
   --ease:cubic-bezier(.2,.8,.2,1)}
 html{font-size:var(--fs,100%)}
 body{font-family:var(--font);
@@ -13,7 +13,7 @@ kbd{font-family:var(--font);background:rgba(0,0,0,.35);border-color:rgba(255,255
 
 /* glass surfaces */
 .glass,.card,.slide,.src,.sheet,.playing .panel{background:var(--glass);border:1px solid var(--edge);
-  -webkit-backdrop-filter:blur(22px) saturate(150%);backdrop-filter:blur(22px) saturate(150%);
+  -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
   box-shadow:0 24px 70px rgba(0,0,0,.4),inset 0 1px 0 rgba(255,255,255,.2)}
 .panel .card,.panel .readout,.panel .glass{background:var(--panel);border-color:var(--line);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 
@@ -211,7 +211,7 @@ body.modes #main{display:none}
 .modegrid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(14px,3vw,40px);width:min(1100px,100%)}
 .modecard{display:flex;flex-direction:column;gap:clamp(6px,1.4dvh,12px);min-height:0;padding:clamp(14px,3dvh,26px) clamp(14px,2.6vw,28px);border-radius:var(--r);color:#fff;font:inherit;text-align:center;cursor:pointer;
   transition:transform .3s var(--ease),border-color .3s,background .3s}
-.modecard:hover{transform:translateY(-4px);border-color:#fff;background:rgba(12,17,28,.66)}
+.modecard:hover{transform:translateY(-4px);border-color:#fff;background:rgba(12,17,28,.5)}
 .modecard:active{transform:scale(.99)}
 .modecard h3{font-size:clamp(1.1rem,2.8dvh,1.5rem);font-weight:600;margin:0}
 .modecard p{color:#e8edf5;font-weight:300;font-size:.92rem;line-height:1.4;margin:0}
@@ -462,3 +462,10 @@ dialog.sheet{overflow:visible;max-height:none}
 .about-chips{grid-template-columns:repeat(4,minmax(0,1fr))}
 .about-chips li{padding:var(--sp-2);text-align:center;font-size:.85rem;font-weight:400;border:1px solid var(--line);border-radius:var(--r-tile);background:var(--panel)}
 @media (max-width:640px){.about-grid li{font-size:.65rem;padding:var(--sp-1)}.about-chips{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ---- phones: Play, Sound key and Describe share one row ---- */
+@media (max-width:640px){
+  .actions{flex-wrap:nowrap}
+  .actions .btn,.actions #play{flex:1 1 0;min-width:0;height:auto;padding:0 var(--sp-2);font-size:.85rem}
+  .actions kbd{display:none}
+}
