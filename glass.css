@@ -198,7 +198,7 @@ html::after{background-image:radial-gradient(1px 1px at 40px 100px,#fff 50%,tran
   .rail{container-type:size;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
 }
 @container (max-height:660px){.mixer{display:none}}
-@container (max-height:560px){.mapfig figcaption,.pitchguide{display:none}}
+@container (max-height:560px){.mapfig figcaption,.pitchspec{display:none}}
 @container (max-height:460px){#info-legends p{display:none}.mapfig canvas{max-height:110px;margin:0 auto}}
 
 
@@ -442,4 +442,23 @@ dialog.sheet{overflow:visible;max-height:none}
   .mapfig canvas{width:min(100%,44cqh);margin:0 auto}
 }
 @container (max-height:440px){#info-legends{display:none}}
-@container (max-height:360px){.pitchguide{display:none}}
+@container (max-height:360px){.pitchspec{display:none}}
+
+
+/* ---- player: seek bar, then Play / Sound key / Describe centered under it ---- */
+.ctl{flex-direction:column;align-items:stretch;gap:var(--sp-3)}
+.actions{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--sp-2)}
+
+/* ---- pitch spectrum: same width as the legend, first thing in the controls card ---- */
+.pitchspec{display:block;width:100%;height:clamp(40px,7dvh,64px);background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:var(--r-tile)}
+
+/* ---- About: instrument and scene lists ---- */
+.sheet em{font-style:italic}
+.about-grid,.about-chips{list-style:none;margin:0;padding:0;display:grid;gap:var(--sp-2)}
+.about-grid{grid-template-columns:repeat(5,minmax(0,1fr))}
+.about-grid li{display:flex;flex-direction:column;align-items:center;gap:var(--sp-1);padding:var(--sp-2);text-align:center;font-size:.8rem;font-weight:400;
+  border:1px solid var(--line);border-radius:var(--r-tile);background:var(--panel)}
+.about-grid svg{width:28px;height:28px;color:var(--accent)}
+.about-chips{grid-template-columns:repeat(4,minmax(0,1fr))}
+.about-chips li{padding:var(--sp-2);text-align:center;font-size:.85rem;font-weight:400;border:1px solid var(--line);border-radius:var(--r-tile);background:var(--panel)}
+@media (max-width:640px){.about-grid li{font-size:.65rem;padding:var(--sp-1)}.about-chips{grid-template-columns:repeat(3,minmax(0,1fr))}}

@@ -110,9 +110,6 @@ video{position:absolute;inset:0;width:100%;height:100%;display:block;background:
 #instBtn svg{transform:translateY(calc(var(--lift,0)*-5px))}
 #instBtn.hit svg{animation:hit .25s}
 @keyframes hit{50%{scale:1.25}}
-.pitchguide{display:flex;align-items:center;gap:10px;color:var(--mute);font-size:.8rem}
-.pitchtrack{position:relative;flex:1;height:6px;background:var(--line);border-radius:3px}
-.pitchtrack i{position:absolute;top:50%;left:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:var(--pulse);border:2px solid #fff;transition:left .12s}
 .ctl2,.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .ctl2 .btn{padding:4px 8px}
 .ctrls label{margin:0 0 2px;font-size:.85rem;color:var(--mute);font-weight:600}

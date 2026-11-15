@@ -225,6 +225,16 @@
   var upS = $("upScene");
   function showScene() { $("sceneName").textContent = upS.options[upS.selectedIndex].text; }
   showScene();
+  /* About sheet: the same instruments and scenes as the upload form, so the lists never drift apart */
+  [].slice.call(upI.options).forEach(function (o) {
+    var li = document.createElement("li"), t = document.createElement("span");
+    li.innerHTML = "<svg " + ST + ">" + (OUT[o.value] || "") + "</svg>";
+    t.textContent = o.textContent; li.appendChild(t); $("aboutInst").appendChild(li);
+  });
+  [].slice.call(upS.options).forEach(function (o) {
+    if (o.value === "none") return;
+    var li = document.createElement("li"); li.textContent = o.textContent; $("aboutScenes").appendChild(li);
+  });
   $("sceneCycle").addEventListener("click", function () {
     upS.selectedIndex = (upS.selectedIndex + 1) % upS.options.length; showScene();
     say("Background texture: " + upS.options[upS.selectedIndex].text + ".");

@@ -147,29 +147,11 @@
               <div id="vcol" class="ov"></div>
             </div>
           </figure>
-          <section id="info-now" class="readout">
+          <section id="info-now" class="readout" hidden>
             <h3 class="sr">Now</h3>
             <p id="now">Nothing yet</p>
           </section>
           <div class="ctl">
-            <button
-              id="play"
-              type="button"
-              class="btn pri"
-              disabled
-              aria-keyshortcuts="Space"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 14 14"
-                fill="currentColor"
-                aria-hidden="true"
-              >
-                <path d="M3 1.5v11l9-5.5z" />
-              </svg>
-              Play
-            </button>
             <input
               id="seek"
               type="range"
@@ -178,6 +160,14 @@
               value="0"
               aria-label="Seek in video"
             />
+            <div class="actions">
+              <button id="play" type="button" class="btn pri" disabled aria-keyshortcuts="Space">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" /></svg>
+                Play
+              </button>
+              <button id="key" type="button" class="btn" aria-keyshortcuts="K">Sound key <kbd>K</kbd></button>
+              <button id="describe" type="button" class="btn" aria-keyshortcuts="D">Describe <kbd>D</kbd></button>
+            </div>
           </div>
         </section>
 
@@ -195,6 +185,7 @@
           </figure>
 
           <aside id="config" class="glass card ctrls" aria-label="Controls">
+            <canvas id="pitchSpec" class="pitchspec" width="480" height="64" aria-hidden="true"></canvas>
             <div class="picks">
               <button id="instBtn" type="button" class="btn pick" aria-keyshortcuts="I">
                 <span class="ico" aria-hidden="true"></span>
@@ -202,19 +193,6 @@
               </button>
               <button id="sceneBtn" type="button" class="btn pick" aria-keyshortcuts="U">
                 <span class="pl"><small>Scene <kbd>U</kbd></small><strong class="pv"></strong></span>
-              </button>
-            </div>
-            <div class="pitchguide" aria-hidden="true">
-              <span>Low</span>
-              <div class="pitchtrack"><i id="pitchDot"></i></div>
-              <span>High</span>
-            </div>
-            <div class="ctl2">
-              <button id="key" type="button" class="btn" aria-keyshortcuts="K">
-                Sound key <kbd>K</kbd>
-              </button>
-              <button id="describe" type="button" class="btn" aria-keyshortcuts="D">
-                Describe <kbd>D</kbd>
               </button>
             </div>
             <div class="row2">
@@ -259,11 +237,12 @@
     <dialog id="about" class="sheet" aria-labelledby="aboutT">
       <button type="button" class="exit" data-close><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd></button>
       <h2 id="aboutT">About</h2>
-      <p>This project turns global climate and weather videos into a soundscape you can explore as it plays. It reads the color of each video frame and turns it into sound.</p>
-      <h3>How it sounds</h3>
-      <p>Each frame is matched against its color bar to recover the data value underneath. At the listening spot you pick, that value becomes a nature sound: rain for precipitation, wind for land temperature, ocean swell for sea temperature. Brighter, more intense colors give fuller, louder textures.</p>
-      <p>A musical note plays along with it. Pitch and volume rise as the value rises. When a place is warmer or wetter than usual, a second, slightly clashing note joins in.</p>
-      <p>West sits in your left ear and east in your right. A low tone underneath tracks the whole planet. Areas with no signal are silent.</p>
+      <p>DANIG comes from two Tagalog words: <em>daigdig</em>, the world, and <em>tinig</em>, sound. Hence the motto: the world, through sound.</p>
+      <p>DANIG turns visual data into soundscapes. It is a jukebox of preset videos from NASA&rsquo;s Earth Information Center, each one a view of our changing planet, set to music that is easy on the ears. You can also upload your own video and color bar, then choose an instrument and a background scene.</p>
+      <h3>Instruments</h3>
+      <ul id="aboutInst" class="about-grid"></ul>
+      <h3>Scenes</h3>
+      <ul id="aboutScenes" class="about-chips"></ul>
     </dialog>
     <dialog id="settings" class="sheet" aria-labelledby="setT">
       <button type="button" class="exit" data-close><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd></button>

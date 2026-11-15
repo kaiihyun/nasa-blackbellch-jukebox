@@ -174,6 +174,27 @@
     $("mixEmpty").hidden = any;
   }
 
+  /* ===== PITCH SPECTRUM: the notes only, 90 Hz to 4 kHz, drawn in the color of the marked place ===== */
+  var SPEC_BARS = 48;
+  function specLoop() {
+    requestAnimationFrame(specLoop);
+    var cv = $("pitchSpec");
+    if (!cv || !S.spec || !document.body.classList.contains("playing")) return;
+    var an = S.spec.an, d = S.spec.data, g = cv.getContext("2d"),
+        W = cv.width, H = cv.height, bw = W / SPEC_BARS,
+        hz = S.ctx.sampleRate / an.fftSize, lo = 90, hi = 4000;
+    an.getByteFrequencyData(d);
+    g.clearRect(0, 0, W, H);
+    g.fillStyle = getComputedStyle(document.documentElement).getPropertyValue("--pulse").trim() || "#5aa9ee";
+    for (var b = 0; b < SPEC_BARS; b++) {
+      var i0 = Math.floor(lo * Math.pow(hi / lo, b / SPEC_BARS) / hz),
+          i1 = Math.max(i0 + 1, Math.ceil(lo * Math.pow(hi / lo, (b + 1) / SPEC_BARS) / hz)), m = 0;
+      for (var i = i0; i < i1 && i < d.length; i++) if (d[i] > m) m = d[i];
+      var h = Math.max(2, (m / 255) * H);
+      g.fillRect(b * bw + 1, H - h, bw - 2, h);
+    }
+  }
+
   /* ===== REGION 2: HELPERS ===== */
   var duckT = null;
   /* Lower the music while a screen reader speaks. The length of speech is estimated from the word count. */
@@ -759,6 +780,10 @@
     po.start();
     po2.start();
     S.pad = { o: po, o2: po2, f: pf, g: pg, p: pp };
+    var san = ctx.createAnalyser();
+    san.fftSize = 4096; san.smoothingTimeConstant = 0.7; san.minDecibels = -85; san.maxDecibels = -30;
+    chan("notes", "Notes").in.connect(san);
+    S.spec = { an: san, data: new Uint8Array(san.frequencyBinCount) };
   }
   function newBus() {
     var old = S.bus;
@@ -2078,16 +2103,13 @@
   /* The pitch guide: the instrument icon rises with the note and pulses on every hit, and a dot
      slides along a Low to High track. The dot follows pitch, so flipping pitch reverses it too. */
   function pitchGuide(norm) {
-    var dot = $("pitchDot"), on = $("instBtn");
-    if (!dot) return;
+    var on = $("instBtn");
+    if (!on) return;
     var n = Math.max(0, Math.min(1, S.invert ? 1 - norm : norm));
-    dot.style.left = n * 100 + "%";
-    if (on) {
-      on.style.setProperty("--lift", n);
-      on.classList.remove("hit");
-      void on.offsetWidth; // restart the pulse animation
-      on.classList.add("hit");
-    }
+    on.style.setProperty("--lift", n);
+    on.classList.remove("hit");
+    void on.offsetWidth; // restart the pulse animation
+    on.classList.add("hit");
   }
   function setInstrument(k) {
     initAudio();
@@ -2299,6 +2321,7 @@
     $("sceneBtn").hidden = !SHOW_SCENE;
     if (SHOW_MIXER) mixLoop();
     buildPickers();
+    specLoop();
     $("ghostL").addEventListener("click", function () { $("prev").click(); });
     $("ghostR").addEventListener("click", function () { $("next").click(); });
     [["slotVideo", "swVideo", "video"], ["slotLegend", "swLegend", "legend"]].forEach(function (a) {
