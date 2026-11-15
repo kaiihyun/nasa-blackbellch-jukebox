@@ -14,7 +14,7 @@
   EJP.forEach(function (p) {
     var twin = C.presets.filter(function (q) { return base(q.videoUrl) && base(q.videoUrl) === base(p.video); })[0];
     var colors = (twin && twin.theme && twin.theme.colors) || FALLBACK;
-    C.presets.push({ name: p.name, description: p.blurb || "", theme: { colors: colors, fixed: true } });
+    C.presets.push({ name: p.name, description: p.blurb || "", theme: { colors: colors, fixed: true }, thumb: p.video ? DIR + p.video : "" });
     TRACKS[p.name] = p.id;
   });
 
@@ -67,7 +67,8 @@
     frame = document.createElement("iframe");
     frame.id = "jukeboxFrame"; frame.title = "Earth Jukebox player"; frame.setAttribute("allow", "autoplay");
     frame.addEventListener("load", function () { win = frame.contentWindow; watch(); drive(id, t0); });
-    frame.src = DIR + "index.html";
+    frame.src = DIR + "jukebox.html";
+    frame.classList.add("on");   /* show the player at once so its loading screen is seen */
     document.body.appendChild(frame);
   }
   function current() { return TRACKS[$("pTitle").textContent]; }

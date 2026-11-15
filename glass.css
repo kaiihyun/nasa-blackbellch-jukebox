@@ -169,3 +169,34 @@ html::after{background-image:radial-gradient(1px 1px at 40px 100px,#fff 50%,tran
 .vsize{display:flex;align-items:center;gap:8px;margin:0;font-size:.85rem;font-weight:500;white-space:nowrap}
 .vsize input{width:clamp(90px,12vw,160px);min-height:32px}
 @media (max-width:640px){.vsize span{display:none}.vsize input{width:90px}}
+
+/* ---- Settings sheet: one fixed size; text always fits its container ---- */
+#settings.sheet{width:min(40rem,calc(100vw - 32px));height:min(36rem,calc(100dvh - 32px));max-width:none;max-height:none;overflow-wrap:anywhere}
+#settings.sheet[open]{display:flex;flex-direction:column}
+#settings .kwrap{flex:1 1 auto;min-height:0;overflow:auto}
+#settings .kwrap table{min-height:0}
+#settings td:first-child{white-space:normal;width:40%}
+#settings .pager{flex:none;margin-top:auto;padding-top:12px}
+#settings .pager #kPage{min-width:5rem;text-align:center}
+#settings .karrow{width:52px;min-width:52px;height:44px;padding:0;display:inline-grid;place-items:center}
+#settings .seg{container-type:inline-size}
+#settings .seg button{min-width:0;white-space:nowrap;padding:4px 2px;font-size:clamp(.68rem,3.7cqw,1rem)}
+.slide h2,.sheet h2,.sheet h3,.ptitle{overflow-wrap:anywhere;text-wrap:balance}
+#pDesc{overflow-wrap:anywhere}
+/* ---- screenshot of the track's video in the carousel ---- */
+.gradbox.shot{display:block;background-size:cover;background-position:center;background-repeat:no-repeat}
+
+/* ---- player sidebar: instrument and scene side by side, legend under the map, always inside the screen ---- */
+.picks{grid-template-columns:1fr 1fr}
+@media (max-width:900px){.picks{grid-template-columns:1fr 1fr}}
+.pick{min-width:0;padding:4px 8px;gap:8px;container-type:inline-size}
+.pick .pl{min-width:0}
+.pick .pv{font-size:clamp(.72rem,8.5cqw,.95rem);line-height:1.1;overflow-wrap:anywhere}
+.pick small{overflow-wrap:anywhere}
+.mapfig{order:1}#info-legends{order:2}#config{order:3}.mixer{order:4}
+@media (min-width:901px){
+  .rail{container-type:size;overflow-x:hidden;overflow-y:auto;scrollbar-width:thin}
+}
+@container (max-height:660px){.mixer{display:none}}
+@container (max-height:560px){.mapfig figcaption,.pitchguide{display:none}}
+@container (max-height:460px){#info-legends p{display:none}.mapfig canvas{max-height:110px;margin:0 auto}}

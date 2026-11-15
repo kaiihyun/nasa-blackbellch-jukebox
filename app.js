@@ -1665,6 +1665,41 @@
     r.setProperty("--b", c[1]);
     r.setProperty("--c", c[2]);
   }
+  /* ===== Screenshot of a track's video, used as the carousel picture (cached; falls back to the colour gradient) ===== */
+  var SHOTS = {};
+  function grabShot(url) {
+    if (SHOTS[url]) return SHOTS[url];
+    return (SHOTS[url] = new Promise(function (ok, no) {
+      var v = document.createElement("video"), done = false, timer;
+      function fail() { if (done) return; done = true; clearTimeout(timer); delete SHOTS[url]; v.removeAttribute("src"); no(new Error("no screenshot")); }
+      v.muted = true; v.playsInline = true; v.preload = "auto"; v.setAttribute("muted", "");
+      timer = setTimeout(fail, 15000);
+      v.addEventListener("error", fail);
+      v.addEventListener("loadedmetadata", function () { v.currentTime = isFinite(v.duration) && v.duration > 0 ? Math.max(0.1, v.duration * 0.4) : 0.1; });
+      v.addEventListener("seeked", function () {
+        if (done) return;
+        try {
+          var w = 640, h = Math.max(1, Math.round(w * v.videoHeight / v.videoWidth)), c = document.createElement("canvas");
+          c.width = w; c.height = h; c.getContext("2d").drawImage(v, 0, 0, w, h);
+          var d = c.toDataURL("image/jpeg", 0.82);
+          done = true; clearTimeout(timer); v.removeAttribute("src"); v.load(); ok(d);
+        } catch (e) { fail(); }
+      });
+      v.src = url;
+    }));
+  }
+  function paintShot(p, i) {
+    var gb = document.querySelector("#blurb .gradbox");
+    if (!gb) return;
+    gb.style.backgroundImage = ""; gb.classList.remove("shot");
+    var u = i === ITEMS.length - 1 ? "" : (p.thumb || p.videoUrl);
+    if (!u) return;
+    function put(src) { if (S.idx !== i) return; gb.style.backgroundImage = 'url("' + src + '")'; gb.classList.add("shot"); }
+    var im = new Image();                       // 1) saved frame next to the video: precip.mp4 -> precip.jpg
+    im.onload = function () { put(im.src); };
+    im.onerror = function () { grabShot(u).then(put).catch(function () {}); };   // 2) frame taken from the mp4 itself
+    im.src = u.replace(/\.[^./?]+$/, ".jpg");
+  }
   function showItem(i, now) {
     var p = ITEMS[i],
       b = $("top");
@@ -1685,6 +1720,7 @@
       $("pTitle").textContent = p.name;
       $("pDesc").textContent = p.description || "";
       $("pIdx").textContent = i + 1 + " / " + ITEMS.length;
+      paintShot(p, i);
       b.classList.remove("swap");
     }
     if (now) text();
@@ -2004,7 +2040,7 @@
   var SCALES = { major: [0, 2, 4, 7, 9], minor: [0, 3, 5, 7, 10] };
   var SCALE_LABEL = { major: "Major pentatonic", minor: "Minor pentatonic" };
   var SCALE_DESC = { major: "Open and bright.", minor: "Darker and more inward." };
-  S.scaleName = C.scaleName || (C.scale.join() === SCALES.minor.join() ? "minor" : "major");
+  S.scaleName = "major"; // major pentatonic only: the minor toggle was removed
   if (!SCALES[S.scaleName]) S.scaleName = "major";
   C.scale = SCALES[S.scaleName].slice();
   function refreshScaleUI() {
@@ -2037,7 +2073,7 @@
 
   /* The three picker buttons: click = next. Mouse clicks never take focus, so Space always means play. */
   function buildPickers() {
-    [["instBtn", nextInstrument], ["sceneBtn", nextScene], ["scaleBtn", toggleScale]].forEach(function (p) {
+    [["instBtn", nextInstrument], ["sceneBtn", nextScene]].forEach(function (p) {
       var b = $(p[0]);
       b.addEventListener("mousedown", function (e) {
         e.preventDefault();

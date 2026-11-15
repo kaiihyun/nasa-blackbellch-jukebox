@@ -7,8 +7,66 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<style>
+/* ---- Settings sheet: one fixed size; text always fits its container ---- */
+#settings.sheet{width:min(40rem,calc(100vw - 32px));height:min(36rem,calc(100dvh - 32px));max-width:none;max-height:none;overflow-wrap:anywhere}
+#settings.sheet[open]{display:flex;flex-direction:column}
+#settings .kwrap{flex:1 1 auto;min-height:0;overflow:auto}
+#settings .kwrap table{min-height:0}
+#settings td:first-child{white-space:normal;width:40%}
+#settings .pager{flex:none;margin-top:auto;padding-top:12px}
+#settings .pager #kPage{min-width:5rem;text-align:center}
+#settings .karrow{width:52px;min-width:52px;height:44px;padding:0;display:inline-grid;place-items:center}
+#settings .seg{container-type:inline-size}
+#settings .seg button{min-width:0;white-space:nowrap;padding:4px 2px;font-size:clamp(.68rem,3.7cqw,1rem)}
+.slide h2,.sheet h2,.sheet h3,.ptitle{overflow-wrap:anywhere;text-wrap:balance}
+#pDesc{overflow-wrap:anywhere}
+/* ---- screenshot of the track's video in the carousel ---- */
+.shot{display:none;width:100%;aspect-ratio:2/1;max-height:clamp(70px,24dvh,220px);margin:0 auto 10px;border-radius:16px;border:1px solid rgba(255,255,255,.55);
+  background:center/cover no-repeat #000;box-shadow:0 10px 36px rgba(0,0,0,.35)}
+.shot.on{display:block}
+@media (max-height:560px){.shot{display:none!important}}
+
+/* ---- Loading screen: the logo, notes orbiting it, a bar that only ever fills ---- */
+.loader{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;
+  background:radial-gradient(120% 60% at 50% 115%,#17407a 0%,#0b2a52 36%,transparent 64%),#02050b;color:#fff;
+  transition:opacity .55s ease,visibility 0s linear .55s}
+.loader.done{opacity:0;visibility:hidden;pointer-events:none}
+.lstage{position:relative;width:260px;height:260px;display:grid;place-items:center}
+.llogo{width:156px;height:auto;color:#fff;overflow:visible}
+.llogo .ring{stroke:var(--accent,#5aa9ee);animation:lpulse 2.4s ease-in-out infinite;transform-origin:48px 16px;transform-box:view-box}
+.orbit{position:absolute;inset:0;animation:lspin 9s linear infinite}
+.lnote{position:absolute;left:50%;top:50%;width:30px;height:30px;margin:-15px 0 0 -15px;
+  transform:rotate(var(--a)) translateY(-112px) rotate(calc(-1 * var(--a)))}
+.lnote svg{display:block;width:100%;height:100%;fill:var(--accent,#5aa9ee);animation:lunspin 9s linear infinite;filter:drop-shadow(0 0 6px rgba(90,169,238,.55))}
+.lnote:nth-child(2n) svg{fill:#fff}
+.lbar{width:min(300px,68vw);height:8px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden}
+.lbar i{display:block;height:100%;width:0;border-radius:inherit;background:var(--accent,#5aa9ee);box-shadow:0 0 14px rgba(90,169,238,.7)}
+.lpct{margin:0;font-weight:500;letter-spacing:.06em;font-variant-numeric:tabular-nums;color:#dfe7f3}
+@keyframes lspin{to{transform:rotate(360deg)}}
+@keyframes lunspin{to{transform:rotate(-360deg)}}
+@keyframes lpulse{50%{transform:scale(1.07);opacity:.75}}
+@media (prefers-reduced-motion:reduce){.orbit,.lnote svg,.llogo .ring{animation:none}.loader{transition:none}}
+</style>
 </head>
 <body class="home">
+<div id="loader" class="loader" aria-busy="true">
+  <div class="lstage" aria-hidden="true">
+    <svg width="0" height="0" style="position:absolute"><defs>
+      <symbol id="n1" viewBox="0 0 24 24"><ellipse cx="8" cy="18" rx="3.8" ry="2.8" transform="rotate(-20 8 18)"/><rect x="10.6" y="3" width="1.8" height="15"/><path d="M12.4 3c1 3.6 5.6 4.2 5.6 9.2-1.1-2.6-3.1-3.3-5.6-3.8z"/></symbol>
+      <symbol id="n2" viewBox="0 0 24 24"><ellipse cx="6.5" cy="18" rx="3.4" ry="2.6" transform="rotate(-20 6.5 18)"/><rect x="8.7" y="5.5" width="1.7" height="12.5"/><ellipse cx="17" cy="16" rx="3.4" ry="2.6" transform="rotate(-20 17 16)"/><rect x="19.2" y="3" width="1.7" height="13"/><path d="M8.7 5.5l12.2-2.5v4L8.7 9.5z"/></symbol>
+    </defs></svg>
+    <div class="orbit">
+      <span class="lnote" style="--a:0deg"><svg><use href="#n1"/></svg></span>
+      <span class="lnote" style="--a:90deg"><svg><use href="#n2"/></svg></span>
+      <span class="lnote" style="--a:180deg"><svg><use href="#n1"/></svg></span>
+      <span class="lnote" style="--a:270deg"><svg><use href="#n2"/></svg></span>
+    </div>
+    <svg class="llogo" viewBox="0 0 96 32" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g class="ring"><circle cx="48" cy="16" r="11"/><ellipse cx="48" cy="16" rx="5" ry="11"/><path d="M37 16h22"/></g><path d="M2 16h14l3-6 4 12 4-9 3 3h6M94 16H82l-3-6-4 12-4-9-2 3"/></svg>
+  </div>
+  <div class="lbar" id="lbar" role="progressbar" aria-label="Loading Earth Jukebox" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="lfill"></i></div>
+  <p class="lpct" id="lpct">0%</p>
+</div>
 <a class="skip" href="#main">Skip to the playlist</a>
 
 <header class="bar">
@@ -36,6 +94,7 @@
           <section id="blurb" class="blurb slide glass" aria-label="Selected track">
             <button id="exitMenu" type="button" class="exit" aria-keyshortcuts="Escape"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd></button>
             <h2 id="pTitle">Loading</h2>
+            <div class="shot" id="pShot" aria-hidden="true"></div>
             <div class="gradbox" id="pBar" aria-hidden="true"></div>
             <div class="legendticks" id="pTicks" aria-hidden="true"></div>
             <p id="pDesc"></p>
@@ -129,11 +188,11 @@
     <button type="button" role="radio" aria-checked="true">Normal</button><button type="button" role="radio" aria-checked="false">Large</button><button type="button" role="radio" aria-checked="false">Extra large</button><button type="button" role="radio" aria-checked="false">Largest</button>
   </div>
   <h2 class="sub">Keyboard shortcuts</h2>
-  <div aria-live="polite"><h3 id="kTitle"></h3><table><caption class="sr">Shortcuts</caption><tbody id="kRows"></tbody></table></div>
-  <div class="pager"><button id="kBack" type="button" class="btn pri pill">Back</button><span id="kPage"></span><button id="kNext" type="button" class="btn pri pill">Next</button></div>
+  <div class="kwrap" aria-live="polite"><h3 id="kTitle"></h3><table><caption class="sr">Shortcuts</caption><tbody id="kRows"></tbody></table></div>
+  <div class="pager"><button id="kBack" type="button" class="btn pri pill karrow" aria-label="Previous page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><span id="kPage"></span><button id="kNext" type="button" class="btn pri pill karrow" aria-label="Next page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>
 </dialog>
 
 <script src="presets.js"></script>
-<script src="app.js"></script>
+<script src="jukebox.js"></script>
 </body>
 </html>

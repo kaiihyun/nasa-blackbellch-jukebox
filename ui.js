@@ -93,9 +93,9 @@
       [K("&larr;", "&rarr;", "&uarr;", "&darr;"), "Move the listening spot"], [K("N") + " / " + K("Shift") + "+" + K("N"), "Next or previous named place"],
       [K("R"), "Restart from the beginning"], [K("K"), "Play the sound key (pauses playback)"], [K("D"), "Describe this moment"]]],
     ["Player, sound", [[K("I") + " / " + K("Shift") + "+" + K("I"), "Next or previous instrument"],
-      [K("U") + " / " + K("Shift") + "+" + K("U"), "Next or previous scene layer"], [K("C"), "Major or minor pentatonic"], [K("V"), "Change video size"],
+      [K("U") + " / " + K("Shift") + "+" + K("U"), "Next or previous scene layer"], [K("V"), "Change video size"],
       [K("[") + " " + K("]"), "Slower or faster (restarts playback)"], [K("-") + " " + K("="), "Volume down or up"], [K("Esc"), "Back to the menu"]]],
-    ["Map", [[K("M"), "Focus the map"], [K("Click") + " or " + K("Tap"), "Place the spot"], [K("?"), "Open or close this list"]]]
+    ["Map", [[K("M"), "Focus the map"], [K("Click") + " or " + K("Tap"), "Place the spot"], [K("?"), "Open or close this list"], [K("&larr;", "&rarr;"), "In this list: previous or next page"]]]
   ], kp = 0;
   function drawKeys() {
     var p = PAGES[kp], tb = $("kRows");
@@ -122,8 +122,9 @@
     var k = e.key;
     if (about.open || sets.open) {          /* a sheet owns the keyboard while open */
       if (k === "?") { e.preventDefault(); (about.open ? about : sets).close(); }
-      else if (sets.open && (k === "ArrowLeft" || k === "ArrowRight") && e.target.getAttribute("role") === "radio") {
-        e.preventDefault(); moveSize(k === "ArrowRight" ? 1 : -1);
+      else if (k.toLowerCase() === "t" && !(e.ctrlKey || e.metaKey || e.altKey)) applySize((si + 1) % SIZES.length);   /* T works here too */
+      else if (sets.open && (k === "ArrowLeft" || k === "ArrowRight")) {   /* arrows turn the shortcut pages */
+        e.preventDefault(); $(k === "ArrowRight" ? "kNext" : "kBack").click();
       }
       e.stopImmediatePropagation(); return;
     }
@@ -154,7 +155,6 @@
     else if (lk === "n") { if (window.spotNextPlace) window.spotNextPlace(e.shiftKey ? -1 : 1); }
     else if (lk === "i") { var fn = e.shiftKey ? window.spotPrevInstrument : window.spotNextInstrument; if (fn) fn(); }
     else if (lk === "u") { var fn2 = e.shiftKey ? window.spotPrevScene : window.spotNextScene; if (fn2) fn2(); }
-    else if (lk === "c") { if (window.spotToggleScale) window.spotToggleScale(); }
     else if (lk === "r") { $("seek").value = 0; $("seek").dispatchEvent(new Event("input")); say("Back at the start."); }
     else if (k === "[") { if (step("rate", -1)) say("Speed " + $("rate").selectedOptions[0].text + ". Playback restarted."); }
     else if (k === "]") { if (step("rate", 1)) say("Speed " + $("rate").selectedOptions[0].text + ". Playback restarted."); }

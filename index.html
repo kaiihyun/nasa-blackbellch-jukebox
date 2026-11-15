@@ -206,9 +206,6 @@
               <button id="sceneBtn" type="button" class="btn pick" aria-keyshortcuts="U">
                 <span class="pl"><small>Scene <kbd>U</kbd></small><strong class="pv"></strong></span>
               </button>
-              <button id="scaleBtn" type="button" class="btn pick" aria-keyshortcuts="C">
-                <span class="pl"><small>Scale <kbd>C</kbd></small><strong class="pv"></strong></span>
-              </button>
             </div>
             <div class="pitchguide" aria-hidden="true">
               <span>Low</span>
@@ -279,8 +276,8 @@
         <button type="button" role="radio" aria-checked="true">Normal</button><button type="button" role="radio" aria-checked="false">Large</button><button type="button" role="radio" aria-checked="false">Extra large</button><button type="button" role="radio" aria-checked="false">Largest</button>
       </div>
       <h2 class="sub">Keyboard shortcuts</h2>
-      <div aria-live="polite"><h3 id="kTitle"></h3><table><caption class="sr">Shortcuts</caption><tbody id="kRows"></tbody></table></div>
-      <div class="pager"><button id="kBack" type="button" class="btn pri pill">Back</button><span id="kPage" class="mono"></span><button id="kNext" type="button" class="btn pri pill">Next</button></div>
+      <div class="kwrap" aria-live="polite"><h3 id="kTitle"></h3><table><caption class="sr">Shortcuts</caption><tbody id="kRows"></tbody></table></div>
+      <div class="pager"><button id="kBack" type="button" class="btn pri pill karrow" aria-label="Previous page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><span id="kPage" class="mono"></span><button id="kNext" type="button" class="btn pri pill karrow" aria-label="Next page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>
     </dialog>
 
     <script src="config.js"></script>

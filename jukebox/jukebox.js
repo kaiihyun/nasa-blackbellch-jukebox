@@ -1,4 +1,4 @@
-// app.js — everything except the track list (presets.js).
+// jukebox.js — everything except the track list (presets.js).
 // Order inside this file: 1 legends, 2 maps, 3 legend reading, 4 analysis + sweep, 5 audio, 6 spectrum, 7 page.
 window.EJ = window.EJ || {};
 (function () {
@@ -7,6 +7,44 @@ window.EJ = window.EJ || {};
   function cl(v) { return v < 0 ? 0 : v > 1 ? 1 : v; }
   function $(id) { return document.getElementById(id); }
   EJ.dataType = 'temp';
+
+  // ================= 0. Loading screen: fills to 100% and never goes backwards =================
+  var Loader = (function () {
+    var el = $('loader'), fill = $('lfill'), pct = $('lpct'), bar = $('lbar');
+    var embedded = window.parent !== window;        // inside the DANIG carousel: stay up until the player opens
+    var t0 = performance.now(), MIN_MS = 1400, target = 0.06, shown = 0, parts = { fonts: 0, legends: 0 }, total = 0, got = 0, finished = false;
+    function set() { target = Math.max(target, Math.min(1, 0.06 + 0.1 * parts.fonts + 0.84 * parts.legends)); }
+    function paint() {
+      var p = Math.round(shown * 100);
+      fill.style.width = p + '%'; pct.textContent = p + '%'; bar.setAttribute('aria-valuenow', p);
+    }
+    function finish() {
+      finished = true; shown = 1; paint();
+      el.classList.add('done'); el.setAttribute('aria-busy', 'false');
+      setTimeout(function () { el.hidden = true; }, 700);
+      if (document.body.classList.contains('home')) { var b = $('homeStart'); if (b) b.focus(); }
+    }
+    function tick(now) {
+      if (finished) return;
+      var ready = target >= 1 && now - t0 >= MIN_MS;
+      shown = Math.min(target, shown + Math.max(0.004, (target - shown) * 0.08));   // eases up, never down
+      paint();
+      var open = !embedded || document.body.classList.contains('playing') || now - t0 > 8000;
+      if (shown >= 1 && ready && open) return finish();
+      if (shown >= target && target >= 1 && !ready) { /* waiting out the minimum time */ }
+      requestAnimationFrame(tick);
+    }
+    parts.legends = 0;
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(function () { parts.fonts = 1; set(); }, function () { parts.fonts = 1; set(); });
+    else parts.fonts = 1;
+    set();
+    requestAnimationFrame(tick);
+    return {
+      expect: function (n) { total = n; if (!n) { parts.legends = 1; set(); } },
+      step: function () { got++; parts.legends = total ? Math.min(1, got / total) : 1; set(); }
+    };
+  })();
+
 
   // ================= 1. Legends: [value, r, g, b] per colour =================
   // temp = NASA T2M near-surface temperature, -40 to 40 °C, a smooth gradient (grey stays "no data").
@@ -343,7 +381,7 @@ window.EJ = window.EJ || {};
   small.width = C; small.height = R;
   var sctx = small.getContext('2d', { willReadFrequently: true });
   vctx.imageSmoothingQuality = 'high';
-  var src = null, objUrl = null, cur = 0, frameCount = 0, looping = false, customs = [], seq = 0, ranges = {};
+  var src = null, objUrl = null, cur = 0, frameCount = 0, looping = false, customs = [], seq = 0, ranges = {}, loadSeq = 0;
 
   function tracks() { return (EJ.PRESETS || []).filter(function (p) { return EJ.MAPS[p.map]; }).concat(customs); }
   function say(t) { $('cap').textContent = t; }                                          // on-screen line, also announced (aria-live)
@@ -477,10 +515,11 @@ window.EJ = window.EJ || {};
     var T = tracks(); if (!T.length) return;
     cur = (i + T.length) % T.length;
     var p = T[cur]; applyMap(p); setSpeed(p.sweep || 24);
+    var mine = ++loadSeq;                       // only the newest request may put its video on screen
     if (!p.video) return;
     fetch(p.video).then(function (r) { if (!r.ok) throw new Error(r.status + ' ' + r.statusText); return r.blob(); })
-      .then(function (b) { loadFile(new File([b], p.video.split('/').pop(), { type: b.type || 'video/mp4' })); t0 = performance.now(); })
-      .catch(function (err) { announce('Could not load ' + p.video + ' (' + err.message + '). Serve this folder with: python3 -m http.server'); });
+      .then(function (b) { if (mine !== loadSeq) return; loadFile(new File([b], p.video.split('/').pop(), { type: b.type || 'video/mp4' })); t0 = performance.now(); })
+      .catch(function (err) { if (mine !== loadSeq) return; announce('Could not load ' + p.video + ' (' + err.message + '). Serve this folder with: python3 -m http.server'); });
   }
   $('speed').oninput = function () { $('spO').textContent = (46 - parseFloat(this.value)) + ' s'; t0 = performance.now(); };
   $('vol').oninput = function () { EJ.audio.setVolume(parseFloat(this.value)); };
@@ -499,14 +538,52 @@ window.EJ = window.EJ || {};
   $('describe').onclick = describeNow;
 
   // ---------- Playlist screen ----------
+  // Screenshot of the track's video for the carousel (cached; nothing shows until it is ready)
+  var SHOTS = {};
+  function grabShot(url) {
+    if (SHOTS[url]) return SHOTS[url];
+    return (SHOTS[url] = new Promise(function (ok, no) {
+      var v = document.createElement('video'), done = false, timer;
+      function fail() { if (done) return; done = true; clearTimeout(timer); delete SHOTS[url]; v.removeAttribute('src'); no(new Error('no screenshot')); }
+      v.muted = true; v.playsInline = true; v.preload = 'auto'; v.setAttribute('muted', '');
+      timer = setTimeout(fail, 15000);
+      v.addEventListener('error', fail);
+      v.addEventListener('loadedmetadata', function () { v.currentTime = isFinite(v.duration) && v.duration > 0 ? Math.max(0.1, v.duration * 0.4) : 0.1; });
+      v.addEventListener('seeked', function () {
+        if (done) return;
+        try {
+          var w = 640, h = Math.max(1, Math.round(w * v.videoHeight / v.videoWidth)), c = document.createElement('canvas');
+          c.width = w; c.height = h; c.getContext('2d').drawImage(v, 0, 0, w, h);
+          var d = c.toDataURL('image/jpeg', 0.82);
+          done = true; clearTimeout(timer); v.removeAttribute('src'); v.load(); ok(d);
+        } catch (e) { fail(); }
+      });
+      v.src = url;
+    }));
+  }
+  function paintShot(p) {
+    var el = $('pShot');
+    if (!p || !p.video) { el.classList.remove('on'); el.style.backgroundImage = ''; el.dataset.u = ''; return; }
+    if (el.dataset.u === p.video) return;                 // already showing, or loading, this one
+    el.dataset.u = p.video; el.classList.remove('on'); el.style.backgroundImage = '';
+    function put(src) {
+      var T = tracks()[cur]; if (!T || T.video !== p.video) return;
+      el.style.backgroundImage = 'url("' + src + '")'; el.classList.add('on');
+    }
+    var im = new Image();                       // 1) saved frame next to the video: x.mp4 -> x.jpg
+    im.onload = function () { put(im.src); };
+    im.onerror = function () { grabShot(p.video).then(put).catch(function () { el.dataset.u = ''; }); };   // 2) frame taken from the mp4
+    im.src = p.video.replace(/\.[^./?]+$/, '.jpg');
+  }
   function renderMenu() {
     var T = tracks(), p = T[cur];
     $('prev').hidden = $('next').hidden = T.length < 2;
     $('start').disabled = !p;
-    if (!p) { $('pTitle').textContent = 'Loading'; $('pDesc').textContent = ''; $('pIdx').textContent = ''; return; }
+    if (!p) { paintShot(null); $('pTitle').textContent = 'Loading'; $('pDesc').textContent = ''; $('pIdx').textContent = ''; return; }
     var m = EJ.MAPS[p.map];
     $('pTitle').textContent = p.name;
     $('pBar').style.background = EJ.legendCss(m.legend);
+    paintShot(p);
     $('pTicks').innerHTML = m.ticks.map(function (s) { return '<span>' + s + '</span>'; }).join('');
     $('pDesc').textContent = p.blurb || m.blurb;
     $('pIdx').textContent = 'Track ' + (cur + 1) + ' of ' + T.length;
@@ -524,7 +601,7 @@ window.EJ = window.EJ || {};
 
   // ---------- Moving between screens ----------
   function leaveHome() { screen('menu'); $('start').focus(); announce($('pTitle').textContent + '. Press Enter to play. Use the left and right arrow keys to change track.'); }
-  function goHome() { if (EJ.audio.playing) setPlaying(false); screen('home'); $('homeStart').focus(); announce('Earth Jukebox. NASA Earth data, played as sound. Press Enter to start.'); }
+  function goHome() { loadSeq++; if (src && src.kind === 'video') src.el.pause(); if (EJ.audio.playing) setPlaying(false); screen('home'); $('homeStart').focus(); announce('Earth Jukebox. NASA Earth data, played as sound. Press Enter to start.'); }
   function enterPlayer() { // the click or key press is the user gesture browsers need before audio can start
     if (!tracks().length) return;
     screen('play'); startTrack(cur);
@@ -532,7 +609,7 @@ window.EJ = window.EJ || {};
     if (!looping) { looping = true; requestAnimationFrame(frame); }
     $('play').focus(); announce('Playing ' + tracks()[cur].name + '. Press Space to stop, Escape to go back.');
   }
-  function leavePlayer() { if (EJ.audio.playing) setPlaying(false); screen('menu'); renderMenu(); $('start').focus(); announce('Playlist. ' + $('pTitle').textContent + '.'); }
+  function leavePlayer() { loadSeq++; if (src && src.kind === 'video') src.el.pause(); if (EJ.audio.playing) setPlaying(false); screen('menu'); renderMenu(); $('start').focus(); announce('Playlist. ' + $('pTitle').textContent + '.'); }
   $('homeStart').onclick = leaveHome;
   $('start').onclick = enterPlayer;
   $('exitMenu').onclick = goHome;
@@ -576,7 +653,7 @@ window.EJ = window.EJ || {};
       [K('D'), 'Describe this moment'], [K('Esc'), 'Back to the playlist']]],
     ['Player, sound and media', [[K('[') + ' ' + K(']'), 'Slower or faster sweep'], [K('-') + ' ' + K('='), 'Volume down or up'],
       [K(',') + ' ' + K('.'), 'Video back or forward 5 seconds'], [K('O'), 'Load an image or video'], [K('L'), 'Upload a legend'],
-      [K('T'), 'Change text size'], [K('?'), 'Open or close this list']]]
+      [K('T'), 'Change text size'], [K('?'), 'Open or close this list'], [K('&larr;', '&rarr;'), 'In this list: previous or next page']]]
   ], kp = 0;
   function drawKeys() {
     var p = PAGES[kp], tb = $('kRows');
@@ -611,7 +688,8 @@ window.EJ = window.EJ || {};
     var k = e.key, tg = e.target, tag = tg.tagName;
     if (about.open || sets.open) { // a sheet owns the keyboard while it is open (Esc closes it natively)
       if (k === '?') { e.preventDefault(); (about.open ? about : sets).close(); }
-      else if (sets.open && (k === 'ArrowLeft' || k === 'ArrowRight') && tg.getAttribute('role') === 'radio') { e.preventDefault(); moveSize(k === 'ArrowRight' ? 1 : -1); }
+      else if (k.toLowerCase() === 't' && !(e.ctrlKey || e.metaKey || e.altKey)) applySize((si + 1) % SIZES.length); // T works here too
+      else if (sets.open && (k === 'ArrowLeft' || k === 'ArrowRight')) { e.preventDefault(); $(k === 'ArrowRight' ? 'kNext' : 'kBack').click(); } // arrows turn the pages
       return;
     }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -657,15 +735,16 @@ window.EJ = window.EJ || {};
 
   // ---------- Legend pictures of presets are read first, then the playlist is complete ----------
   EJ.presetErrors = [];
+  Loader.expect((EJ.PRESETS || []).filter(function (p) { return p.legend; }).length);
   (EJ.PRESETS || []).forEach(function (p) {
     if (!p.legend) { p.map = p.map || p.id; return; }
     p.map = p.id;
     var img = new Image();
     img.onload = function () {
       try { registerMap(p, readLegend(img, p.legend)); } catch (e) { EJ.presetErrors.push(p.id + ': ' + e.message); console.error(p.id, e); }
-      renderMenu();
+      renderMenu(); Loader.step();
     };
-    img.onerror = function () { EJ.presetErrors.push(p.id + ': could not load ' + p.legend.image); renderMenu(); };
+    img.onerror = function () { EJ.presetErrors.push(p.id + ': could not load ' + p.legend.image); renderMenu(); Loader.step(); };
     img.src = p.legend.image;
   });
   renderMenu();
