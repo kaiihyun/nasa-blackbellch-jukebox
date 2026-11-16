@@ -1,0 +1,59 @@
+/* sweep.css: LAYOUT of the Sweep mode (Earth Jukebox) player only.
+   Look comes from ../css/tokens.css + glass.css + kit.css. Loaded by sweepmode/sweep.html before kit.css. */
+:root{--reserve:25rem}
+.cap{font-size:.8rem;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cap.center{text-align:center}
+#tPrev,#tNext{display:none}   /* a track is chosen on the playlist screen only, never inside the player */
+
+/* playlist card: this mode shows a still of the video above the legend bar */
+.slide .gradbox:not(.shot){flex:0 0 clamp(36px,9dvh,80px)}
+.shot{display:none;flex:1 1 auto;min-height:0;width:100%;border-radius:var(--r-media);border:var(--media-bd);background:center/cover no-repeat #000;box-shadow:0 10px 36px rgba(0,0,0,.35)}
+.shot.on{display:block}
+.slide .legendticks{padding:0 .4rem}
+@media (max-height:560px){.shot{display:none!important}}
+
+/* player */
+.panel{display:none;flex-direction:column;gap:.5rem;margin:0 auto .6rem;width:min(1180px,calc(100% - 1.75rem));min-height:0;flex:1;border-radius:var(--r);padding:.8rem 1.2rem;animation:rise .5s var(--ease) both}
+.playing .panel{display:flex}
+.topline{display:flex;align-items:center;gap:.5rem}
+.ptitle{flex:1;min-width:0;text-align:center;font-size:clamp(1rem,2.8vw,1.5rem);font-weight:600;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1.8fr) minmax(0,1fr);gap:.7rem;align-items:start}
+.left{display:flex;flex-direction:column;gap:.5rem;min-width:0;align-items:center}
+.view{position:relative;width:min(100%,max(15rem,calc((100dvh - var(--reserve)) * 2)));aspect-ratio:2/1;background:#0c1020;overflow:hidden}
+.view canvas{display:block;width:100%;height:100%}
+.view.drop{outline:3px dashed var(--accent);outline-offset:-6px}
+.ph{position:absolute;top:0;bottom:0;left:0;width:2px;background:#fff;box-shadow:0 0 12px 3px rgba(255,255,255,.8);display:none}
+.side{padding:.6rem;display:flex;flex-direction:column;gap:.5rem;min-width:0}
+.pixbox{position:relative;aspect-ratio:2/1;overflow:hidden;border:1px solid var(--line);background:#0c1020}
+.pixbox canvas{display:block;width:100%;height:100%;image-rendering:pixelated}
+.legendbar{height:.75rem;border:1px solid var(--line)}
+.legendticks{display:flex;justify-content:space-between;font-size:.72rem;color:var(--mut);font-variant-numeric:tabular-nums;margin-top:.15rem}
+.legendrange{display:flex;gap:.6rem}
+.legendrange label{display:flex;align-items:center;gap:.4rem;font-size:.8rem;color:var(--mut)}
+.legendrange input[type=number]{width:4.4rem;min-height:2rem;padding:.15rem .4rem}
+.read{display:flex;gap:.3rem .9rem;flex-wrap:wrap;font-size:.85rem;font-variant-numeric:tabular-nums}
+.read b{font-weight:600}.read .h{color:var(--hot)}.read .w{color:var(--wet)}
+.spectrum{width:100%;padding:.35rem .8rem}
+.spechead{display:flex;justify-content:space-between;font-size:.75rem;color:var(--mut)}
+.srow{display:grid;grid-template-columns:5rem minmax(0,1fr);gap:.6rem;align-items:center;height:1.4rem}
+.slabel{font-size:.78rem;font-weight:600;white-space:nowrap}
+.srow canvas{display:block;width:100%;height:1.25rem}
+.controls{display:flex;flex-wrap:wrap;gap:.5rem .9rem;align-items:center}
+.controls .btn.pri{min-width:5.5rem}
+.slider{display:flex;flex-direction:column;font-size:.78rem;color:var(--mut);flex:1 1 7.5rem;min-width:6rem}
+.slider b{color:#fff;font-weight:600;margin-left:.3rem}
+
+@media (max-width:640px){
+  :root{--reserve:42rem}
+  .carousel{display:contents}
+  .panel{width:calc(100% - 1rem);padding:.6rem;margin-bottom:.4rem}
+  .stage{grid-template-columns:1fr;gap:.4rem}
+  .side{display:grid;grid-template-columns:1fr 1fr;gap:.4rem .6rem}
+  .side .pixbox{grid-column:1}.side .cap{display:none}
+  .side .legend,.side .legendrange,.side .read,.side #describe{grid-column:2}
+  .controls{gap:.4rem .6rem}.slider{flex-basis:45%}
+}
+@media (max-height:560px){
+  :root{--reserve:17rem}
+  .cap,.spechead,.side .cap{display:none}.read{font-size:.75rem}
+}

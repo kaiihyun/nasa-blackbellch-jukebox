@@ -1,0 +1,43 @@
+/* tokens.css: EVERY global style variable. Change a value here and both modes follow.
+   Loaded first by index.html and sweepmode/sweep.html. */
+:root{
+  color-scheme:dark;
+  /* ---- type ---- */
+  --font:"Poppins",system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+  /* ---- colour ---- */
+  --bg:#02050b; --text:#fff; --mut:#c9d3e2;
+  --accent:#5aa9ee; --accent-fill:#2b78c8; --accent-ink:#1f6fc0; --on-accent:#04101f;
+  --hot:#ff6a45; --wet:#4aa8ff;
+  /* ---- Earth photo and the dark scrim over it (0 = none, 1 = black) ---- */
+  --scrim-top:.3; --scrim-bottom:.6;
+
+  /* ---- GLASS: change these to restyle every glass surface ---- */
+  --glass-rgb:12,17,28;        /* tint colour (r,g,b) */
+  --glass-alpha:.26;           /* OPACITY, 0 = clear ... 1 = solid. Lower = more transparent. The Setting slider overrides it */
+  --glass-blur:30px;           /* how much the picture behind is blurred */
+  --glass-saturate:180%;
+  --glass-edge-alpha:.28;      /* the thin light border */
+  --glass-shine:rgba(255,255,255,.2);
+  --glass-shadow:0 24px 70px rgba(0,0,0,.4);
+  --panel-alpha:.9;           /* cards INSIDE a glass panel */
+  --line-alpha:.2;
+  --glass:rgba(var(--glass-rgb),var(--glass-alpha));
+  --glass-hover:rgba(var(--glass-rgb),calc(var(--glass-alpha) + .16));
+  --edge:rgba(255,255,255,var(--glass-edge-alpha));
+  --panel:rgba(255,255,255,var(--panel-alpha));
+  --line:rgba(255,255,255,var(--line-alpha));
+
+  /* ---- buttons ---- */
+  --btn-bg:rgba(8,12,20,.55); --btn-hover:rgba(255,255,255,.22); --btn-active:rgba(255,255,255,.3);
+
+  /* ---- shape and spacing ---- */
+  --r:16px; --r-media:8px; --r-tile:8px; --r-sm:8px;
+  --gap:16px;
+  --sp-1:4px; --sp-2:8px; --sp-3:clamp(8px,1.6dvh,12px); --sp-4:clamp(10px,2dvh,16px); --sp-5:clamp(14px,3dvh,24px); --sp-6:clamp(18px,4dvh,32px);
+  --h-ctl:clamp(36px,5.6dvh,44px); --h-ctl-sm:clamp(30px,4.6dvh,36px); --h-big:clamp(44px,6.4dvh,52px);
+  --pad-card:clamp(16px,3dvh,28px) clamp(16px,3.5vw,32px);
+  --media-bd:2px solid rgba(255,255,255,.85);
+
+  /* ---- motion ---- */
+  --ease:cubic-bezier(.2,.8,.2,1); --move:cubic-bezier(.22,.8,.24,1); --dur-out:.34s; --dur-in:.55s;
+}

@@ -1,0 +1,10 @@
+/* glass.css: how every glass surface LOOKS. All numbers come from tokens.css (the GLASS block). Layout is not here. */
+.glass,.card,.slide,.src,.sheet,.panel{background:var(--glass);border:1px solid var(--edge);
+  -webkit-backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-saturate));backdrop-filter:blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-shine)}
+/* cards inside a glass panel are flat, so blur is not stacked */
+.panel .card,.panel .readout,.panel .glass{background:var(--panel);border-color:var(--line);box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+.sheet::backdrop{background:rgba(2,5,11,.55);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px)}
+.modecard:hover{background:var(--glass-hover);border-color:#fff}
+.upcol,.about-grid li,.about-chips li{background:var(--panel);border:1px solid var(--line)}
+#live{background:rgba(0,0,0,.4);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);border-top:1px solid var(--line);font-weight:300}
