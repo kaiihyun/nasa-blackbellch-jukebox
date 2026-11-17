@@ -3,9 +3,14 @@
      1  Intro     black screen with DANIG cut out of it, so the stars and Earth show through the letters.
                   Nothing moves until every file is loaded. Then the word grows until the whole page is visible,
                   and the landing page fades in (blur to sharp, one piece after another).
-                  The zoom aims at the stem of the letter "I" (a plain solid bar) and ends the moment the
-                  screen sits entirely inside it. At that point no black is left on screen, so the overlay is
-                  simply removed. There is no fade, so no black is ever seen fading out.
+                  The zoom aims at the middle of the N's left leg (a plain solid bar).
+                  Two things guarantee that NO black is ever seen at the end:
+                    a) a "hole" rectangle sits inside that leg (same look as the letter, but it scales reliably
+                       at huge sizes, where a giant glyph can be clipped by the browser)
+                    b) in the last 20% a circle opens from the screen centre (inside the leg, so it is invisible
+                       until the leg already covers the screen) and grows past the corners
+                  There is NO opacity fade, so black is never seen fading out. When the zoom ends the overlay is
+                  completely empty and is simply removed.
      2  Upload   fills in the accepted file formats on the "Upload your own" card
    ============================================================ */
 (function () {
@@ -28,12 +33,21 @@
   })();
 
   /* ---------- 1. Intro ---------- */
-  var svg = $("intro"), g = $("introScale"), tx = $("introText");
+  var svg = $("intro"), g = $("introScale"), tx = $("introText"), mask = $("introMask");
   function finish() {
     body.classList.remove("intro"); body.classList.add("reveal", "ready");
     if (svg) svg.style.display = "none";
   }
-  if (!svg || !g || !tx || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) { finish(); return; }
+  if (!svg || !g || !tx || !mask || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)) { finish(); return; }
+
+  /* extra holes in the mask (black in a mask = see-through). Created here so index.html does not need to change. */
+  var NS = "http://www.w3.org/2000/svg";
+  var hole = document.createElementNS(NS, "rect");        /* inside the N's leg, scales with the letters */
+  hole.setAttribute("fill", "#000"); hole.setAttribute("width", 0); hole.setAttribute("height", 0);
+  g.appendChild(hole);
+  var wipe = document.createElementNS(NS, "circle");      /* in screen coordinates, outside the scaled group */
+  wipe.setAttribute("fill", "#000"); wipe.setAttribute("r", 0);
+  mask.appendChild(wipe);
 
   /* geometry, measured from the overlay itself (not window.innerHeight, which jumps on phones when the address bar moves) */
   var W = 0, H = 0, cx = 0, cy = 0,
@@ -50,8 +64,9 @@
     tx.setAttribute("x", cx); tx.setAttribute("y", cy);
     tx.setAttribute("dominant-baseline", "alphabetic");              /* the y below is then the true baseline, so the middle of the letters is known exactly */
     fx = cx; fy = cy; kEnd = 140;
+    hole.setAttribute("width", 0); hole.setAttribute("height", 0);
     try {
-      /* actual ink of "I" in the real font: where the bar is, and how wide and tall */
+      /* actual ink of "I" in the real font: how wide the bar is, and the N's height and where its ink begins */
       cvs.font = "700 100px Poppins, system-ui, sans-serif";
       var mi = cvs.measureText("I"), mn = cvs.measureText("N"),
           k = fs / 100,
@@ -64,9 +79,14 @@
         var p = tx.getStartPositionOfChar(2);                        /* "DANIG": index 2 is the N */
         fx = p.x + nLeft + stemW / 2;                                /* the middle of the N's left leg, across */
         fy = base - stemH / 2;                                       /* and halfway up it: the middle of the N */
-        kEnd = 4 * Math.max(W / stemW, H / stemH);                   /* at the end the leg is 4x the screen wide (and tall), so the screen is deep inside it */
+        /* the hole is deliberately SMALLER than the leg (70% wide, 60% tall), so it always sits inside the letter and never shows as a bump */
+        var hw = stemW * 0.7, hh = stemH * 0.6;
+        hole.setAttribute("x", fx - hw / 2); hole.setAttribute("y", fy - hh / 2);
+        hole.setAttribute("width", hw); hole.setAttribute("height", hh);
+        kEnd = 4 * Math.max(W / hw, H / hh);                         /* at the end the hole is 4x the screen wide and tall */
       }
     } catch (e) {}
+    wipe.setAttribute("cx", cx); wipe.setAttribute("cy", cy);
   }
   size(); window.addEventListener("resize", size);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", size);
@@ -86,9 +106,10 @@
   function ease(t) { return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; }
   function smooth(u) { return u * u * (3 - 2 * u); }
   function grow() {
-    var t0 = performance.now(), DUR = 4600, shown = false;
+    var t0 = performance.now(), DUR = 5600, shown = false;
     size();                                                                    /* fonts are loaded now: measure again, with the real glyphs */
     svg.classList.add("go");
+    var reach = Math.sqrt(W * W + H * H) / 2 + 8;                             /* from the centre to past the farthest corner */
     function step(now) {
       var t = Math.min(1, (now - t0) / DUR),
           q = 0.82 * ease(t) + 0.18 * t,                                       /* 0..1, never decelerates to a stop */
@@ -97,8 +118,16 @@
           px = fx + (cx - fx) * s, py = fy + (cy - fy) * s;
       g.setAttribute("transform", "translate(" + px + " " + py + ") scale(" + k + ") translate(" + (-fx) + " " + (-fy) + ")");
       if (!shown && t > 0.4) { shown = true; body.classList.add("reveal"); }   /* the landing page starts to fade in while the letters are still opening up */
-      var f = Math.max(0, Math.min(1, (t - 0.7) / 0.3));                       /* last 30%: pure fade, zoom keeps going, nothing shifts */
-      svg.style.opacity = String(1 - smooth(f));
+
+      /* last 20%: a circle opens from the centre. The centre is already inside the leg, so nothing visible changes,
+         but when t reaches 1 the whole screen is guaranteed to be see-through: no black left, no fade needed. */
+      var w = Math.max(0, Math.min(1, (t - 0.3) / 0.2));
+      wipe.setAttribute("r", reach * smooth(w));
+
+      /* from 80% on the overlay also fades out slowly, so the landing page melts in. The circle above makes sure
+         nothing black is left, so what fades is only the last bit of the letters, never a black screen. */
+      svg.style.opacity = String(1 - smooth(w));
+
       if (t < 1) requestAnimationFrame(step); else finish();
     }
     requestAnimationFrame(step);
