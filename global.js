@@ -13,6 +13,10 @@
   var $ = function (id) { return document.getElementById(id); };
   var body = document.body;
   var MAIN = !!$("modeLoc");                         /* index.html; false on the Sweep page */
+  (function sky() {                                  /* stars and the rotating Earth, on both pages */
+    if ($("spaceJs")) return;
+    var s = document.createElement("script"); s.id = "spaceJs"; s.src = D.url("space.js"); s.async = true; document.head.appendChild(s);
+  })();
 
   D.say = D.say || function (t) { var n = $("live") || $("sr"); if (n) n.textContent = t; };
   function say(t) { if (window.spotSay) window.spotSay(t); else D.say(t); }
@@ -85,7 +89,7 @@
   function openDlg(d) {
     var o = d === about ? sets : about;
     if (o.open) o.close();
-    if (!d.open) { lastF = document.activeElement; d.showModal(); }
+    if (!d.open) { lastF = document.activeElement; d.showModal(); if (d === sets) { kp = 0; drawKeys(false); } }
   }
   [about, sets].forEach(function (d) {
     d.addEventListener("close", function () { if (lastF && document.contains(lastF)) lastF.focus(); });
@@ -103,6 +107,7 @@
     radios.forEach(function (b, j) { b.setAttribute("aria-checked", j === i); b.tabIndex = j === i ? 0 : -1; });
     try { localStorage.setItem("danigSize", i); } catch (e) {}
     if (!quiet) say("Text size: " + SIZES[i][0] + ".");
+    if (sets.open) drawKeys(true);
   }
   radios.forEach(function (b, j) { b.addEventListener("click", function () { applySize(j); }); });
   try { applySize(Math.max(0, Math.min(3, +localStorage.getItem("danigSize") || 0)), true); } catch (e) { applySize(0, true); }
@@ -152,19 +157,56 @@
       [kbs(L("seekBack")) + " " + kbs(L("seekForward")), "Video back or forward 5 seconds"], [kbs(L("textSize")), "Change text size"],
       [kbs(L("settings")), "Open or close this list"], [both("prev", "next"), "In this list: previous or next page"]]]
   ], kp = 0;
-  function drawKeys() {
-    var p = PAGES[kp], tb = $("kRows");
-    $("kTitle").textContent = p[0]; tb.textContent = "";
-    p[1].forEach(function (r) {
-      var tr = document.createElement("tr"), a = document.createElement("td"), b = document.createElement("td");
-      a.innerHTML = r[0]; b.textContent = r[1]; tr.appendChild(a); tr.appendChild(b); tb.appendChild(tr);
-    });
-    $("kPage").textContent = (kp + 1) + " of " + PAGES.length;
-    $("kBack").disabled = kp === 0; $("kNext").disabled = kp === PAGES.length - 1;
+  /* The shortcut list is a book. Every row of every group goes into one flat list, and pages are cut by measuring:
+     rows are added until the page is full, then the next rows start the next page. Nothing is a fixed page, so a
+     bigger text size, a shorter window or a new shortcut just changes where the pages break. */
+  var KI = [], starts = [0], wrapK = $("kWrap");
+  PAGES.forEach(function (p) {
+    KI.push({ h: p[0] });
+    p[1].forEach(function (r) { KI.push({ a: r[0], b: r[1] }); });
+  });
+  function kRow(tb, it) {
+    var tr = document.createElement("tr"), a, b;
+    if (it.h !== undefined) {
+      a = document.createElement("th"); a.colSpan = 2; a.scope = "colgroup"; a.textContent = it.h; tr.className = "grp"; tr.appendChild(a);
+    } else {
+      a = document.createElement("td"); b = document.createElement("td"); a.innerHTML = it.a; b.textContent = it.b; tr.appendChild(a); tr.appendChild(b);
+    }
+    tb.appendChild(tr); return tr;
   }
-  $("kBack").addEventListener("click", function () { if (kp > 0) { kp--; drawKeys(); } });
-  $("kNext").addEventListener("click", function () { if (kp < PAGES.length - 1) { kp++; drawKeys(); } });
-  drawKeys();
+  function kFill(start) {                                     /* draws one page from item `start`; returns the index where the next page begins */
+    var tb = $("kRows"), tbl = tb.parentNode, room = wrapK.clientHeight, i = start, rows = 0, tr, isRow;
+    tb.textContent = "";
+    while (i < KI.length) {
+      isRow = KI[i].h === undefined;
+      tr = kRow(tb, KI[i]); if (isRow) rows++;
+      if (tbl.offsetHeight > room && i > start && !(isRow && rows === 1)) { tb.removeChild(tr); break; }
+      i++;
+    }
+    while (i > start + 1 && KI[i - 1].h !== undefined) { tb.removeChild(tb.lastChild); i--; }   /* a group title never ends a page alone */
+    return i;
+  }
+  function kPaint(dir) {
+    var back = $("kBack"), next = $("kNext");
+    kFill(starts[kp]);
+    $("kPage").textContent = "Page " + (kp + 1) + " of " + starts.length;
+    back.disabled = kp === 0; next.disabled = kp === starts.length - 1;
+    var ae = document.activeElement;
+    if (ae && ae.disabled) (ae === back ? next : back).focus();
+    if (dir) { wrapK.classList.remove("turn-next", "turn-prev"); void wrapK.offsetWidth; wrapK.classList.add(dir > 0 ? "turn-next" : "turn-prev"); }
+  }
+  function drawKeys(keep) {                                   /* works out the pages for the space there is right now */
+    if (!sets.open) return;
+    var anchor = keep ? (starts[kp] || 0) : 0, s = 0, end, i;
+    starts = [0];
+    for (;;) { end = kFill(s); if (end >= KI.length) break; starts.push(end); s = end; }
+    kp = 0; for (i = 0; i < starts.length; i++) if (starts[i] <= anchor) kp = i;
+    kPaint(0);
+  }
+  $("kBack").addEventListener("click", function () { if (kp > 0) { kp--; kPaint(-1); } });
+  $("kNext").addEventListener("click", function () { if (kp < starts.length - 1) { kp++; kPaint(1); } });
+  if (window.ResizeObserver) new ResizeObserver(function () { drawKeys(true); }).observe(wrapK);
+  window.addEventListener("resize", function () { drawKeys(true); });
 
   /* ---------- 4a. Main page: loading screen (before the keyboard code, so it can lock the keys first) ---------- */
   if (MAIN) (function loader() {
@@ -328,6 +370,10 @@
 
   document.addEventListener("keydown", function (e) {
     var k = e.key;
+    if (body.classList.contains("intro")) {                     /* the opening animation owns the keyboard until it is done */
+      if (!(e.ctrlKey || e.metaKey || e.altKey) && !/^F\d+$/.test(k)) { e.preventDefault(); e.stopImmediatePropagation(); }
+      return;
+    }
     if (about.open || sets.open) {                              /* a sheet owns the keyboard while open (Esc closes it natively) */
       if (e.target.id === "glassAmt" && /^(Arrow|Home$|End$|Page)/.test(k)) { e.stopImmediatePropagation(); return; }
       if (D.is(e, "settings")) { e.preventDefault(); (about.open ? about : sets).close(); }
@@ -407,27 +453,42 @@
     new MutationObserver(mirror).observe(t1, { childList: true, characterData: true, subtree: true });
     mirror();
 
+    var swapping = false;
+    function swap(fn) {                                             /* current screen blurs out, the switch happens, the next one blurs in (CSS does the fading) */
+      if (swapping) return;
+      if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) { fn(); return; }
+      swapping = true; body.classList.add("out");
+      setTimeout(function () { fn(); void body.offsetWidth; body.classList.remove("out"); swapping = false; }, 240);
+    }
     leaveHome = function () {                                       /* landing -> mode picker */
       if (!body.classList.contains("home")) return;
-      body.classList.remove("home"); body.classList.add("modes");
-      $("modeLoc").focus();
-      say("Choose a mode. Press " + L("modeLocation") + " for Location mark, " + L("modeSweep") + " for Sweep. Left and right arrow keys move between them.");
+      swap(function () {
+        body.classList.remove("home"); body.classList.add("modes");
+        $("modeLoc").focus();
+        say("Choose a mode. Press " + L("modeLocation") + " for Location mark, " + L("modeSweep") + " for Sweep. Left and right arrow keys move between them.");
+      });
     };
     goHome = function () {
-      body.classList.remove("modes"); body.classList.add("home");
-      $("homeStart").focus();
-      say("DANIG. The world, through sound. Press " + L("start") + " to start.");
+      swap(function () {
+        body.classList.remove("modes"); body.classList.add("home");
+        $("homeStart").focus();
+        say("DANIG. The world, through sound. Press " + L("start") + " to start.");
+      });
     };
     function goModes() {                                            /* carousel -> mode picker */
-      body.classList.add("modes");
-      $("modeLoc").focus();
-      say("Choose a mode. Press " + L("modeLocation") + " for Location mark, " + L("modeSweep") + " for Sweep.");
+      swap(function () {
+        body.classList.add("modes");
+        $("modeLoc").focus();
+        say("Choose a mode. Press " + L("modeLocation") + " for Location mark, " + L("modeSweep") + " for Sweep.");
+      });
     }
     chooseMode = function (m) {
-      if (window.spotSetMode) window.spotSetMode(m);
-      body.classList.remove("modes");
-      $("start").focus();
-      say((m === "sweep" ? "Sweep mode. " : "Location mark mode. ") + t1.textContent + ". Press " + L("start") + " to play. Use the left and right arrow keys to change dataset.");
+      swap(function () {
+        if (window.spotSetMode) window.spotSetMode(m);
+        body.classList.remove("modes");
+        $("start").focus();
+        say((m === "sweep" ? "Sweep mode. " : "Location mark mode. ") + t1.textContent + ". Press " + L("start") + " to play. Use the left and right arrow keys to change dataset.");
+      });
     };
     function go(d) {
       var s = $("preset");
@@ -457,7 +518,7 @@
     function fitDialog(d) {
       d.style.transform = ""; d.style.animation = "";
       if (!d.open) return;
-      var vw = window.innerWidth, vh = window.innerHeight, m = 16, w = d.offsetWidth, h = d.offsetHeight,
+      var vw = window.innerWidth, vh = window.innerHeight, m = 16, w = d.offsetWidth, h = Math.max(d.offsetHeight, d.scrollHeight),
           k = Math.min(1, (vw - 2 * m) / w, (vh - 2 * m) / h);
       if (k >= 0.999) return;
       var cx = d.offsetLeft + w / 2, cy = d.offsetTop + h / 2;
