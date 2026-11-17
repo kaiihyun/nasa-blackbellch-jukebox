@@ -37,8 +37,8 @@
 
   /* geometry, measured from the overlay itself (not window.innerHeight, which jumps on phones when the address bar moves) */
   var W = 0, H = 0, cx = 0, cy = 0,
-      fx = 0, fy = 0,          /* the focus: the middle of the I stem, in text coordinates */
-      kEnd = 140;              /* the scale at which the screen sits entirely inside the I stem */
+      fx = 0, fy = 0,          /* the focus: the middle of the N's left leg, in text coordinates */
+      kEnd = 140;              /* the scale at which the screen sits entirely inside that leg */
   var cvs = document.createElement("canvas").getContext("2d");
 
   function size() {
@@ -48,24 +48,29 @@
     var fs = Math.min(W * 0.235, H * 0.36);
     tx.setAttribute("font-size", fs);
     tx.setAttribute("x", cx); tx.setAttribute("y", cy);
+    tx.setAttribute("dominant-baseline", "alphabetic");              /* the y below is then the true baseline, so the middle of the letters is known exactly */
     fx = cx; fy = cy; kEnd = 140;
     try {
       /* actual ink of "I" in the real font: where the bar is, and how wide and tall */
       cvs.font = "700 100px Poppins, system-ui, sans-serif";
-      var m = cvs.measureText("I"),
+      var mi = cvs.measureText("I"), mn = cvs.measureText("N"),
           k = fs / 100,
-          left = -m.actualBoundingBoxLeft * k, right = m.actualBoundingBoxRight * k,
-          stemW = right - left, stemH = m.actualBoundingBoxAscent * k;
-      var p = tx.getStartPositionOfChar(3);                          /* "DANIG": index 3 is the I */
-      if (stemW > 0 && stemH > 0 && isFinite(p.x) && isFinite(p.y)) {
-        fx = p.x + (left + right) / 2;
-        fy = p.y - stemH / 2;
-        kEnd = 1.15 * Math.max(W / stemW, H / stemH);                /* half the screen must fit inside half the bar, with 15% to spare */
+          stemW = (mi.actualBoundingBoxLeft + mi.actualBoundingBoxRight) * k,   /* the I is one bar, so its width is the stroke thickness */
+          nLeft = -mn.actualBoundingBoxLeft * k,                                /* where the N's ink begins */
+          stemH = mn.actualBoundingBoxAscent * k;
+      if (stemW > 0 && stemH > 0) {
+        var base = cy + stemH / 2;                                   /* baseline that puts the capital letters exactly in the middle of the screen */
+        tx.setAttribute("y", base);
+        var p = tx.getStartPositionOfChar(2);                        /* "DANIG": index 2 is the N */
+        fx = p.x + nLeft + stemW / 2;                                /* the middle of the N's left leg, across */
+        fy = base - stemH / 2;                                       /* and halfway up it: the middle of the N */
+        kEnd = 4 * Math.max(W / stemW, H / stemH);                   /* at the end the leg is 4x the screen wide (and tall), so the screen is deep inside it */
       }
     } catch (e) {}
   }
   size(); window.addEventListener("resize", size);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", size);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);    /* measure again once the real font is in */
 
   function once(target, type) { return new Promise(function (ok) { target.addEventListener(type, ok, { once: true }); }); }
   function image(src) { return new Promise(function (ok) { var i = new Image(); i.onload = i.onerror = ok; i.src = D.url ? D.url(src) : src; }); }
@@ -88,11 +93,13 @@
       var t = Math.min(1, (now - t0) / DUR),
           q = 0.82 * ease(t) + 0.18 * t,                                       /* 0..1, never decelerates to a stop */
           k = Math.exp(Math.log(kEnd) * q),
-          s = smooth(q),                                                       /* slides the focus from where it sits in the word to the middle of the screen */
+          s = smooth(Math.min(1, q / 0.55)),                                   /* the focus reaches the middle of the screen early, then NEVER moves again */
           px = fx + (cx - fx) * s, py = fy + (cy - fy) * s;
       g.setAttribute("transform", "translate(" + px + " " + py + ") scale(" + k + ") translate(" + (-fx) + " " + (-fy) + ")");
       if (!shown && t > 0.4) { shown = true; body.classList.add("reveal"); }   /* the landing page starts to fade in while the letters are still opening up */
-      if (t < 1) requestAnimationFrame(step); else finish();                   /* the whole screen is inside the I now: nothing black is left to see */
+      var f = Math.max(0, Math.min(1, (t - 0.7) / 0.3));                       /* last 30%: pure fade, zoom keeps going, nothing shifts */
+      svg.style.opacity = String(1 - smooth(f));
+      if (t < 1) requestAnimationFrame(step); else finish();
     }
     requestAnimationFrame(step);
   }
