@@ -1,5 +1,5 @@
 # DANIG: the world, through sound
-danig.earth
+www.danig.earth
 
 DANIG turns visual data into soundscapes. The name comes from two Tagalog words, *daigdig* (the world) and *tinig* (sound). It plays preset videos from NASA's Earth Information Center as music, and you can upload your own video (or picture) and color bar.
 
