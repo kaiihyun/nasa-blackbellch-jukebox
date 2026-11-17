@@ -404,7 +404,7 @@ window.EJ = window.EJ || {};
   }
 
   // ================= 7. The page: screens, playlist, player, main loop =================
-  var body = document.body, about = $('about'), sets = $('settings'), lastF = null;
+  var body = document.body, D = window.DANIG;
   var view = $('view'), vctx = view.getContext('2d'), small = $('pix');
   small.width = C; small.height = R;
   var sctx = small.getContext('2d', { willReadFrequently: true });
@@ -414,6 +414,7 @@ window.EJ = window.EJ || {};
   function tracks() { return (EJ.PRESETS || []).filter(function (p) { return EJ.MAPS[p.map]; }).concat(customs); }
   function say(t) { $('cap').textContent = t; }                                          // on-screen line, also announced (aria-live)
   function announce(t) { say(t); var s = $('sr'); s.textContent = ''; setTimeout(function () { s.textContent = t; }, 50); } // for screen readers
+  D.say = announce;                                                                      // global.js speaks through here (text size, glass)
   function screenName() { return body.classList.contains('home') ? 'home' : body.classList.contains('playing') ? 'play' : 'menu'; }
   function screen(s) { body.classList.toggle('home', s === 'home'); body.classList.toggle('playing', s === 'play'); }
 
@@ -484,41 +485,13 @@ window.EJ = window.EJ || {};
       im.src = objUrl;
     }
   }
-  $('pick').onclick = function () { $('file').click(); };
-  $('cam').onclick = function () { $('camFile').click(); };
   $('file').onchange = function (e) { loadFile(e.target.files[0]); e.target.value = ''; };
-  $('camFile').onchange = function (e) { loadFile(e.target.files[0]); e.target.value = ''; };
   var vb = $('viewBox');
   vb.addEventListener('click', function () { if (!src) $('file').click(); else if (src.kind === 'video' && src.el.paused) src.el.play(); });
   vb.addEventListener('dragover', function (e) { e.preventDefault(); vb.classList.add('drop'); });
   vb.addEventListener('dragleave', function () { vb.classList.remove('drop'); });
   vb.addEventListener('drop', function (e) { e.preventDefault(); vb.classList.remove('drop'); loadFile(e.dataTransfer.files[0]); });
 
-  // ---------- Your own legend ----------
-  $('legendPick').onclick = function () { $('legendFile').click(); };
-  $('legendFile').onchange = function (e) {
-    var f = e.target.files[0]; e.target.value = ''; if (!f) return;
-    say('Reading ' + f.name + '…');
-    var url = URL.createObjectURL(f), img = new Image();
-    img.onload = function () {
-      URL.revokeObjectURL(url);
-      try {
-        var L = readLegend(img, { image: f.name }), id = 'custom' + (++seq), name = f.name.replace(/\.[^.]+$/, '');
-        registerMap({ id: id, map: id, mapName: 'Custom: ' + name, blurb: 'Your own legend, ' + L.colors.length + (L.discrete ? ' steps' : ' colors') + '. Above the middle value buzzes, below it chimes.',
-          voice: { scale: 'major', reverb: 0.5, hiss: 0.04 } }, L);
-        ranges[id] = function (lo, hi) {
-          L.lo = lo; L.hi = hi; L.colors.forEach(function (c) { c[0] = lo + c[4] * (hi - lo); });
-          EJ.MAPS[id].ticks = ticks(L, false, '');
-        };
-        customs.push({ id: id, map: id, name: 'Custom: ' + name, blurb: '' });
-        $('legendMin').value = 0; $('legendMax').value = 1;
-        startTrack(tracks().length - 1);
-        announce('Read ' + L.colors.length + (L.discrete ? ' steps' : ' colors') + ' from ' + f.name + '. Set what its lowest and highest values mean.');
-      } catch (err) { announce('Could not read that legend: ' + err.message); }
-    };
-    img.onerror = function () { announce('Could not open that image file.'); };
-    img.src = url;
-  };
   function applyRange() {
     var p = tracks()[cur], lo = parseFloat($('legendMin').value), hi = parseFloat($('legendMax').value);
     if (!p || !ranges[p.id] || isNaN(lo) || isNaN(hi) || hi <= lo) return;
@@ -734,60 +707,7 @@ window.EJ = window.EJ || {};
   };
   $('homeStart').onclick = leaveHome;
   $('start').onclick = enterPlayer;
-  $('exitBtn').onclick = function () { var s = screenName(); if (s === 'play') leavePlayer(); else if (s === 'menu') goHome(); };   // one Exit button, top left: back one screen
-
-  // ---------- About and Setting sheets ----------
-  function openDlg(d) {
-    var o = d === about ? sets : about;
-    if (o.open) o.close();
-    if (!d.open) { lastF = document.activeElement; d.showModal(); }
-  }
-  [about, sets].forEach(function (d) {
-    d.addEventListener('close', function () { if (lastF && document.contains(lastF)) lastF.focus(); });
-    d.addEventListener('click', function (e) { if (e.target === d) d.close(); }); // click the dimmed area to close
-  });
-  document.querySelectorAll('[data-close]').forEach(function (b) { b.addEventListener('click', function () { b.closest('dialog').close(); }); });
-  $('aboutBtn').onclick = function () { openDlg(about); };
-  $('helpBtn').onclick = function () { openDlg(sets); };
-
-  // Text size: scales the whole page (all sizes are in rem) and is remembered
-  var SIZES = [['Normal', 100], ['Large', 115], ['Extra large', 130], ['Largest', 150]], si = 0;
-  var radios = [].slice.call(document.querySelectorAll('#sizes [role=radio]'));
-  function applySize(i, quiet) {
-    si = i; document.documentElement.style.setProperty('--fs', SIZES[i][1] + '%');
-    radios.forEach(function (b, j) { b.setAttribute('aria-checked', j === i); b.tabIndex = j === i ? 0 : -1; });
-    try { localStorage.setItem('ejSize', i); } catch (e) {}
-    if (!quiet) announce('Text size: ' + SIZES[i][0] + '.');
-  }
-  radios.forEach(function (b, j) { b.onclick = function () { applySize(j); }; });
-  function moveSize(d) { var j = (si + d + SIZES.length) % SIZES.length; applySize(j); radios[j].focus(); }
-  try { applySize(Math.max(0, Math.min(3, +localStorage.getItem('ejSize') || 0)), true); } catch (e) { applySize(0, true); }
-
-  // Keyboard shortcut pages (they match the keys wired below)
-  function K() { return [].slice.call(arguments).map(function (k) { return '<kbd>' + k + '</kbd>'; }).join(' '); }
-  var PAGES = [
-    ['Playlist', [[K('&larr;', '&rarr;'), 'Previous or next track'], [K('1') + ' to ' + K('9'), 'Jump to a track'],
-      [K('Enter') + ' or ' + K('Space'), 'Play the track'], [K('A'), 'About'], [K('?'), 'Setting and shortcuts'],
-      [K('T'), 'Change text size'], [K('Esc'), 'Back one screen']]],
-    ['Player', [[K('Space'), 'Play or stop'], [K('P'), 'Panning on or off'], [K('S'), 'Stop the sound'], [K('R'), 'Restart the sweep from the west'],
-      [K('D'), 'Describe this moment'], [K('Esc'), 'Back to the playlist (the track is chosen there)']]],
-    ['Player, sound and media', [[K('[') + ' ' + K(']'), 'Slower or faster sweep'], [K('-') + ' ' + K('='), 'Volume down or up'],
-      [K(',') + ' ' + K('.'), 'Video back or forward 5 seconds'], [K('O'), 'Load an image or video'], [K('L'), 'Upload a legend'],
-      [K('T'), 'Change text size'], [K('?'), 'Open or close this list'], [K('&larr;', '&rarr;'), 'In this list: previous or next page']]]
-  ], kp = 0;
-  function drawKeys() {
-    var p = PAGES[kp], tb = $('kRows');
-    $('kTitle').textContent = p[0]; tb.textContent = '';
-    p[1].forEach(function (r) {
-      var tr = document.createElement('tr'), a = document.createElement('td'), b = document.createElement('td');
-      a.innerHTML = r[0]; b.textContent = r[1]; tr.appendChild(a); tr.appendChild(b); tb.appendChild(tr);
-    });
-    $('kPage').textContent = (kp + 1) + ' of ' + PAGES.length;
-    $('kBack').disabled = kp === 0; $('kNext').disabled = kp === PAGES.length - 1;
-  }
-  $('kBack').onclick = function () { if (kp > 0) { kp--; drawKeys(); } };
-  $('kNext').onclick = function () { if (kp < PAGES.length - 1) { kp++; drawKeys(); } };
-  drawKeys();
+  $('exitBtn').onclick = function () { var s = screenName(); if (entering) cancelEnter(); else if (s === 'play') leavePlayer(); else if (s === 'menu') goHome(); };   // one Exit button, top left: back one screen
 
   // ---------- Keyboard ----------
   function nudgeSpeed(d) { // d > 0 = faster = shorter sweep. The slider holds 46 minus the sweep time.
@@ -804,55 +724,43 @@ window.EJ = window.EJ || {};
     var el = src.el, t = Math.max(0, el.currentTime + d); if (el.duration) t = Math.min(el.duration, t);
     el.currentTime = t; announce('Video at ' + Math.round(t) + ' seconds.');
   }
+  // Buttons, sheets and the Exit/About/Setting/text-size keys are handled in global.js (keys: globalconfig.js).
+  // What is left here are the screens of this page and the keys that have no button.
   document.addEventListener('keydown', function (e) {
     var k = e.key, tg = e.target, tag = tg.tagName;
-    if (about.open || sets.open) {
-      if (e.target.id === 'glassAmt' && /^(Arrow|Home$|End$|Page)/.test(k)) return;   // the glass slider keeps its own arrow keys // a sheet owns the keyboard while it is open (Esc closes it natively)
-      if (k === '?') { e.preventDefault(); (about.open ? about : sets).close(); }
-      else if (k.toLowerCase() === 't' && !(e.ctrlKey || e.metaKey || e.altKey)) applySize((si + 1) % SIZES.length); // T works here too
-      else if (sets.open && (k === 'ArrowLeft' || k === 'ArrowRight')) { e.preventDefault(); $(k === 'ArrowRight' ? 'kNext' : 'kBack').click(); } // arrows turn the pages
-      return;
-    }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     var isRange = tag === 'INPUT' && tg.type === 'range';
     if (tag === 'SELECT' || tag === 'TEXTAREA' || (tag === 'INPUT' && !isRange && tg.type !== 'file')) return; // typing
-    var lk = k.toLowerCase(), scr = screenName(), onBtn = tag === 'BUTTON' || tag === 'A';
-    if (k === '?') { e.preventDefault(); openDlg(sets); return; }
-    if (lk === 'a') { e.preventDefault(); openDlg(about); return; }
-    if (lk === 't') { applySize((si + 1) % SIZES.length); return; }
+    var scr = screenName(), onBtn = tag === 'BUTTON' || tag === 'A';
 
     if (scr === 'home') { // landing: only Start is live
-      if ((k === 'Enter' || k === ' ') && !onBtn) { e.preventDefault(); leaveHome(); }
+      if ((D.is(e, 'start') || k === ' ') && !onBtn) { e.preventDefault(); leaveHome(); }
       return;
     }
     var n = parseInt(k, 10);
     if (scr === 'menu') {
-      if (entering) { if (k === 'Escape') cancelEnter(); return; }   // loading: nothing else is live
+      if (entering) { if (D.is(e, 'exit')) cancelEnter(); return; }   // loading: nothing else is live
       if (embedded && (k === 'ArrowLeft' || k === 'ArrowRight')) return;   // the DANIG carousel owns the arrow keys
-      if (k === 'Escape') goHome();
+      if (D.is(e, 'exit')) goHome();
       else if (k === 'ArrowLeft') { e.preventDefault(); menuGo(-1); }
       else if (k === 'ArrowRight') { e.preventDefault(); menuGo(1); }
       else if (n >= 1 && n <= 9) { if (!embedded || !e.isTrusted) menuJump(n - 1); }   // embedded: only the carousel (not a person) picks the track
-      else if ((k === 'Enter' || k === ' ') && !onBtn) { e.preventDefault(); enterPlayer(); }
+      else if ((D.is(e, 'start') || k === ' ') && !onBtn) { e.preventDefault(); enterPlayer(); }
       return;
     }
     // player
-    if (k === 'Escape') { leavePlayer(); return; }
+    if (D.is(e, 'exit')) { leavePlayer(); return; }
     if (isRange && /^(Arrow|Home$|End$|Page)/.test(k)) return; // sliders keep their own arrow keys
-    if (k === 'ArrowLeft' || k === 'ArrowRight' || (n >= 1 && n <= 9)) { e.preventDefault(); announce('The track can not be changed while playing. Press Escape to go back to the playlist.'); }
-    else if (lk === 'p') { e.preventDefault(); setPan(!A.panOn); }
-    else if (k === ' ' && !onBtn) { e.preventDefault(); $('play').click(); announce(EJ.audio.playing ? 'Playing.' : 'Stopped.'); }
-    else if (lk === 's') { if (EJ.audio.playing) { $('play').click(); announce('Stopped.'); } else announce('Already silent.'); }
-    else if (lk === 'r') { t0 = performance.now(); announce('Back at the west edge.'); }
-    else if (lk === 'd') describeNow();
-    else if (k === '[') nudgeSpeed(-2);
-    else if (k === ']') nudgeSpeed(2);
-    else if (k === '-') nudgeVolume(-0.1);
-    else if (k === '=' || k === '+') nudgeVolume(0.1);
-    else if (k === ',') seek(-5);
-    else if (k === '.') seek(5);
-    else if (lk === 'o') { e.preventDefault(); $('pick').click(); }
-    else if (lk === 'l') { e.preventDefault(); $('legendPick').click(); }
+    if (k === 'ArrowLeft' || k === 'ArrowRight' || (n >= 1 && n <= 9)) { e.preventDefault(); announce('The track can not be changed while playing. Press ' + D.label(D.keyOf('exit')) + ' to go back to the playlist.'); }
+    else if (D.is(e, 'pan')) { e.preventDefault(); setPan(!A.panOn); }
+    else if (D.is(e, 'silence')) { if (EJ.audio.playing) { $('play').click(); announce('Stopped.'); } else announce('Already silent.'); }
+    else if (D.is(e, 'restart')) { t0 = performance.now(); announce('Back at the west edge.'); }
+    else if (D.is(e, 'slower')) nudgeSpeed(-2);
+    else if (D.is(e, 'faster')) nudgeSpeed(2);
+    else if (D.is(e, 'volumeDown')) nudgeVolume(-0.1);
+    else if (D.is(e, 'volumeUp') || k === '+') nudgeVolume(0.1);
+    else if (D.is(e, 'seekBack')) seek(-5);
+    else if (D.is(e, 'seekForward')) seek(5);
   });
 
   // ---------- Legend pictures of presets are read first, then the playlist is complete ----------
@@ -871,5 +779,5 @@ window.EJ = window.EJ || {};
   });
   renderMenu();
   $('homeStart').focus();
-  announce('Earth Jukebox. NASA Earth data, played as sound. Press Enter to start.');
+  announce('Earth Jukebox. NASA Earth data, played as sound. Press ' + D.label(D.keyOf('start')) + ' to start.');
 })();

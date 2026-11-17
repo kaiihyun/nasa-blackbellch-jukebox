@@ -1,5 +1,7 @@
 # DANIG: the world, through sound
 
+www.danig.earth
+
 DANIG turns visual data into soundscapes. The name comes from two Tagalog words, *daigdig* (the world) and *tinig* (sound). It plays preset videos from NASA's Earth Information Center as music, and you can upload your own video (or picture) and color bar.
 
 It is plain HTML, CSS and JavaScript. There is no build step and nothing to install except Python, which serves the files.
@@ -25,7 +27,7 @@ Both modes end with an **Upload your own** card. It has two boxes: one for the v
 
 ## Keyboard
 
-Every button has a key, shown on the button and announced by screen readers (`aria-keyshortcuts` plus a spoken "Shortcut: X"). Press `?` in the app for the full list.
+Every button has a key. It shows on the right of the button text, and screen readers hear it (`aria-keyshortcuts` plus a spoken "Shortcut: X"). Press `?` in the app for the full list. All keys live in `globalconfig.js`, so changing one there changes the screen, the announcement and the shortcut list.
 
 | Where | Key | Action |
 | --- | --- | --- |
@@ -36,48 +38,59 @@ Every button has a key, shown on the button and announced by screen readers (`ar
 | Upload cards | `V` / `L` | Upload video / upload legend |
 | Upload form | `I`, `U`, `Enter` | Next instrument, next texture, load |
 | Location player | `Space`, `K`, `D` | Play or pause, sound key, describe |
-| Location player | `I`, `U`, `X` | Instrument, scene, speed (Slow → Normal → Fast) |
-| Location player | `1`–`9` | Mute or unmute a row in "Playing now" |
+| Location player | `I`, `U`, `X` | Instrument, scene, speed (Slow, Normal, Fast) |
+| Location player | `1`–`9`, `0` | Pick that instrument (the buttons beside the video) |
+| Location player | `Shift`+`1`–`9` | Mute or unmute a row in "Playing now" |
 | Location player | `←` `→` `↑` `↓`, `N`, `M` | Move the spot, named places, focus the map |
 | Sweep player | `Space`, `P`, `R`, `D` | Play, panning, restart, describe |
 | Error screen | `R` / `Esc` | Try again / go back |
 
 ## Settings for developers
 
-`locationmode/config.js`:
+Everything global is in `globalconfig.js`:
+
+1. Where files live (`DANIG.dirs`).
+2. `DANIG.keys`: one key per button.
+3. `CONFIG.ui`: on/off switches for features.
 
 ```js
-ui: {
+CONFIG.ui = {
+  showInstrumentStrip: true,   // laptop only: instrument buttons between the video and the sidebar
   showMixer: true,
   showScenePicker: true,
-  showInstrumentStrip: true,   // laptop only: a column of instrument buttons between the video and the sidebar
+  showShortcutBadges: true,    // the key shown on each button
+  showTextSize: true,
+  showGlassOpacity: true,
+  sweepAcceptsImages: true,    // PNG and JPEG in the Sweep upload card
   duckWhileSpeaking: false
-}
+};
 ```
 
-All colors, sizes, glass look and the player panel width are in `css/tokens.css`:
+Look and feel is in the `:root` block at the top of `styles.css`:
 
-- `--panel-w` is the width of both player panels (75% of the screen on a laptop, capped at 1180px).
-- `--glass-*` restyle every glass surface at once.
+- Spacing uses an 8px scale: `--s1` is 8px, `--s2` 16px, up to `--s6`.
+- `--panel-w` is the width of every player panel (75% of the screen on a laptop, capped at 1180px).
+- Every glass surface (mode picker, carousel, players, sheets) uses the one `.glass` rule, so `--glass-*` restyles them together.
 
 ## Adding data
 
 - **Location mark datasets:** `locationmode/config.js`, in `presets`. Each needs a video, a legend picture and its min, max and scale.
 - **Sweep tracks:** `sweepmode/presets.js`. A track on the built-in temperature map only needs a video.
-- Put videos in `assets/videos/` and legend pictures in `assets/legends/`. Folder names are set in `js/paths.js`.
+- Put videos in `assets/videos/` and legend pictures in `assets/legends/`. Folder names are set in `globalconfig.js`.
 - Instruments and scenes can be added as plugins: put a file in `locationmode/instruments/custom/` or `locationmode/scenes/custom/`, then run `python3 tools/make-plugins.py`.
 
 ## Folder map
 
 ```
 index.html            the DANIG page (landing, modes, carousel, Location player)
-main_config.js        global settings
+styles.css            the only stylesheet, shared by both modes
+globalconfig.js       keys, feature switches, file paths
+global.js             shared code: shortcut badges, key handling, sheets, loader, bridge to Sweep
 server.py             local server, video proxy, custom error page
-css/                  tokens, base, glass, kit (components), loader (loading and error screens)
-js/                   paths, loader, error, bridge, ui, hotkeys, fit, glass
-locationmode/         Location mark: config, engine, upload form, plugins, layout CSS
-sweepmode/            Sweep: page, player, tracks, layout CSS
-assets/               videos, legends, ui images (not in this repo's source files)
+locationmode/         Location mark only: config, engine, upload form, instruments, scenes, plugins
+sweepmode/            Sweep only: page, player, tracks
+assets/               videos, legends, ui images
+tools/                make-plugins.py
 ```
 
 ## Accessibility

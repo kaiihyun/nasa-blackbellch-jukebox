@@ -31,7 +31,10 @@
   var OCTAVES = C.octaves || 3;
   var UI = C.ui || {};
   var SHOW_MIXER = UI.showMixer !== false; // config.js ui.showMixer: the "Playing now" spectrum list
-  var SHOW_SCENE = UI.showScenePicker !== false; // config.js ui.showScenePicker: the scene layer button
+  var SHOW_SCENE = UI.showScenePicker !== false; // globalconfig.js ui.showScenePicker: the scene layer button
+  var SHOW_STRIP = UI.showInstrumentStrip !== false; // globalconfig.js ui.showInstrumentStrip: instrument buttons beside the video (laptop)
+  var DK = window.DANIG; // keys from globalconfig.js
+  function keyWord(act) { return DK.label(DK.keyOf(act)); }
   var DUCK = !!UI.duckWhileSpeaking; // config.js ui.duckWhileSpeaking
   var LI = C.listen || {};
   var FLIP = LI.flipPan ? -1 : 1;
@@ -125,13 +128,16 @@
     for (var i = 1; i <= BARS; i++)
       EDGES.push(Math.min(n, Math.max(EDGES[i - 1] + 1, Math.round(Math.pow(n - 1, i / BARS)))));
   }
+  var MIXN = 0;
   function buildRow(c) {
     var li = document.createElement("li"), nm = document.createElement("span"),
         cv = document.createElement("canvas"), bt = document.createElement("button");
-    li.className = "mixrow"; li.style.order = Math.max(0, MIX_INS.cycle().indexOf(c.id));
+    li.className = "mixrow"; li.style.order = Math.max(0, INS.cycle().indexOf(c.id));
     nm.className = "mixname";
     cv.className = "mixspec"; cv.width = 240; cv.height = 32; cv.setAttribute("aria-hidden", "true");
     bt.type = "button"; bt.className = "btn sm mixmute"; bt.setAttribute("aria-pressed", "false");
+    bt.setAttribute("data-act", "mute"); bt.setAttribute("data-i", MIXN++); bt.setAttribute("data-selflabel", "");
+    var mt = document.createElement("span"); bt.appendChild(mt);
     bt.addEventListener("click", function () {
       c.muted = !c.muted;
       c.mute.gain.setTargetAtTime(c.muted ? 0 : 1, S.ctx.currentTime, 0.03);
@@ -139,7 +145,7 @@
     });
     li.appendChild(nm); li.appendChild(cv); li.appendChild(bt);
     $("mixList").appendChild(li);
-    c.row = { el: li, name: nm, cv: cv, g: cv.getContext("2d"), btn: bt };
+    c.row = { el: li, name: nm, cv: cv, g: cv.getContext("2d"), btn: bt, mt: mt };
   }
   function mixLoop() {
     requestAnimationFrame(mixLoop);
@@ -161,9 +167,10 @@
       any = true;
       if (r.name.textContent !== c.label) r.name.textContent = c.label;
       r.el.classList.toggle("muted", c.muted);
-      r.btn.textContent = c.muted ? "Unmute" : "Mute";
-      r.btn.setAttribute("aria-pressed", c.muted ? "true" : "false");
-      r.btn.setAttribute("aria-label", (c.muted ? "Unmute " : "Mute ") + c.label);
+      var word = c.muted ? "Unmute" : "Mute", sk = DK.keyOf("mute", +r.btn.getAttribute("data-i")),
+          lab = word + " " + c.label + (sk ? ". Shortcut: " + sk.replace("Shift+", "Shift ") + "." : "");
+      if (r.mt.textContent !== word) { r.mt.textContent = word; r.btn.setAttribute("aria-pressed", c.muted ? "true" : "false"); }
+      if (r.btn.getAttribute("aria-label") !== lab) r.btn.setAttribute("aria-label", lab);
       var g = r.g, W = r.cv.width, H = r.cv.height, bw = W / BARS;
       g.clearRect(0, 0, W, H);
       g.fillStyle = c.muted ? "#777" : col;
@@ -1393,11 +1400,9 @@
   function openForm() {
     S.formOpen = true;
     document.body.classList.add("form");
-    say(
-      "Upload form. Choose your MP4 video and the legend picture. The other settings unlock when both are in. Escape cancels.",
-    );
+    say("Settings for your files. Fill in what you know, then press Load and continue. " + keyWord("cancel") + " goes back.");
     setTimeout(function () {
-      $("pickVideo").focus();
+      $("upLabel").focus();
     }, 60);
   }
   function closeForm(quiet) {
@@ -1486,15 +1491,13 @@
     applyPreset(i);
     S.loaded = false;
     $("play").disabled = true;
-    $("startLabel").textContent = isUpload() || p.trackId === "__upload__" ? "Choose files" : "Play";
+    $("startLabel").textContent = "Play";
     function text() {
       $("pTitle").textContent = p.name;
       $("pDesc").textContent = p.description || "";
       $("pIdx").textContent = i + 1 + " / " + ITEMS.length;
       paintShot(p, i);
-      var sup = p.trackId === "__upload__";
-      document.body.classList.toggle("sweepup", sup);
-      $("start").disabled = sup && !swReady();
+      $("start").disabled = i === ITEMS.length - 1 && !swReady();   // the upload card plays only when both boxes are filled
       paintGhosts(i);
       b.classList.add("pre");            // jump to the "arriving" pose without animating...
       b.classList.remove("swap");
@@ -1515,8 +1518,8 @@
     say(
       p.name +
         ". " +
-        (isUpload() || p.trackId === "__upload__" ? "Press Enter to choose your files."
-          : "Press Enter to start.") +
+        (i === ITEMS.length - 1 ? "Click the two boxes to add your video and legend picture. Press " + keyWord("uploadVideo") + " for the video, " + keyWord("uploadLegend") + " for the legend."
+          : "Press " + keyWord("start") + " to start.") +
         " Use the left and right arrow keys to change.",
     );
     layoutFlow();
@@ -1543,6 +1546,9 @@
   /* Switch the carousel to a mode: "location" (DANIG presets + upload) or "sweep" (Earth Jukebox tracks + its upload). */
   function setMode(m) {
     var sweep = m === "sweep";
+    S.mode = sweep ? "sweep" : "location";
+    S.sw = S.files[S.mode];
+    slotsRepaint();
     ITEMS = C.presets.filter(function (p) { return !!p.sweep === sweep; }).concat([sweep ? SWEEP_UPLOAD : UPLOAD]);
     var sel = $("preset");
     sel.innerHTML = "";
@@ -1563,24 +1569,35 @@
   window.spotShot = grabShot;   // ui.js uses this for the preview in the upload form
   window.spotRepaint = function () { paintShot(ITEMS[S.idx], S.idx); };
   /* ===== Sweep "Upload your own": two slots (video, legend). Play opens the Earth Jukebox player only when both are filled. ===== */
-  S.sw = { video: null, legend: null };
+  S.files = { location: { video: null, legend: null }, sweep: { video: null, legend: null } };   // each mode keeps its own two files
+  S.sw = S.files.location;
   function swReady() { return !!(S.sw.video && S.sw.legend); }
+  var ACCEPT_LOCATION = "video/mp4,.mp4";
+  var ACCEPT_SWEEP = "video/*,.mp4,.mov,.m4v,.webm";
+  var ACCEPT_PICTURE = ",image/png,image/jpeg,.png,.jpg,.jpeg";   // Sweep also takes a still picture in the video box
   window.spotSweepFiles = function () { return swReady() ? S.sw : null; };
-  function slotSet(which, file) {
-    var btn = $(which === "video" ? "slotVideo" : "slotLegend");
-    S.sw[which] = file || null;
+  function slotPaint(which) {                        // a box shows the file's picture, or just its icon. No words.
+    var btn = $(which === "video" ? "slotVideo" : "slotLegend"), file = S.sw[which];
     btn.classList.toggle("has", !!file);
     btn.style.backgroundImage = "";
-    btn.querySelector("strong").textContent = file ? file.name : (which === "video" ? "Upload video" : "Upload legend");
-    btn.querySelector("small").textContent = file ? "Click to replace" : (which === "video" ? "MP4, MOV, WebM" : "PNG, JPG, WebP");
-    if (file) {
-      var url = URL.createObjectURL(file);
-      if (which === "legend" || /^image/.test(file.type)) btn.style.backgroundImage = 'url("' + url + '")';
-      else grabShot(url).then(function (d) { if (S.sw.video === file) btn.style.backgroundImage = 'url("' + d + '")'; }).catch(function () {});
-    }
-    if (ITEMS[S.idx] && ITEMS[S.idx].trackId === "__upload__") $("start").disabled = !swReady();
-    say(file ? (which === "video" ? "Video" : "Legend") + " chosen: " + file.name + ". " + (swReady() ? "Both are ready. Press Play." : "Now choose the " + (which === "video" ? "legend." : "video."))
+    var kind = which === "video" ? (S.mode === "sweep" && UI.sweepAcceptsImages !== false ? "Upload video or picture" : "Upload video") : "Upload legend picture";
+    btn.setAttribute("aria-label", file ? kind.replace("Upload", "Replace") + ". Chosen: " + file.name : kind);
+    btn.removeAttribute("data-kd"); DK.decorate(btn);
+    if (!file) return;
+    var url = URL.createObjectURL(file);
+    if (which === "legend" || /^image/.test(file.type)) btn.style.backgroundImage = 'url("' + url + '")';
+    else grabShot(url).then(function (d) { if (S.sw.video === file) btn.style.backgroundImage = 'url("' + d + '")'; }).catch(function () {});
+  }
+  function slotSet(which, file) {
+    S.sw[which] = file || null;
+    slotPaint(which);
+    if (ITEMS[S.idx] && S.idx === ITEMS.length - 1) $("start").disabled = !swReady();
+    say(file ? (which === "video" ? "Video" : "Legend") + " chosen: " + file.name + ". " + (swReady() ? "Both are ready. Press " + keyWord("start") + " to continue." : "Now choose the " + (which === "video" ? "legend." : "video."))
              : "Cleared.");
+  }
+  function slotsRepaint() {
+    $("swVideo").accept = S.mode === "sweep" && UI.sweepAcceptsImages !== false ? ACCEPT_SWEEP + ACCEPT_PICTURE : (S.mode === "sweep" ? ACCEPT_SWEEP : ACCEPT_LOCATION);
+    slotPaint("video"); slotPaint("legend");
   }
   /* The instrument grid in the upload form plays a short preview of the instrument you pick. */
   window.spotPreviewInstrument = function (k) {
@@ -1636,9 +1653,10 @@
   async function enter() {
     var cp = ITEMS[S.idx];   // sweep tracks open in the Earth Jukebox player (bridge.js)
     if (cp && cp.sweep) {
-      if (cp.trackId === "__upload__" && !swReady()) say("Upload a video and a legend first. Click the two boxes on the card.");
+      if (cp.trackId === "__upload__" && !swReady()) say("Add a video and a legend first. Click the two boxes on the card.");
       return;
     }
+    if (isUpload() && !swReady()) { say("Add a video and a legend first. Click the two boxes on the card."); return; }
     initAudio(); /* inside the key press, before any await, or the browser keeps sound muted */
     if (S.busy) return;
     if (isUpload() && !S.formOpen) {
@@ -1661,7 +1679,7 @@
     resetPlayback("Back to the menu. Press Enter to play again.");
     document.body.classList.remove("playing");
     S.view = "menu";
-    if (S.formOpen) $("pickVideo").focus();
+    if (S.formOpen) $("upLabel").focus();
     else $("start").focus();
   }
   async function onLoad() {
@@ -1673,8 +1691,8 @@
       url = P.videoUrl,
       specs;
     if (isUpload()) {
-      file = $("file").files[0];
-      var lf = $("legendFile").files[0];
+      file = S.files.location.video;
+      var lf = S.files.location.legend;
       if (!file) return say("Choose your video first. It must be an MP4.");
       if (!lf)
         return say("Choose the legend picture, the image of the color bar.");
@@ -1779,7 +1797,8 @@
     if (!b) return;
     b.querySelector(".ico").innerHTML = INS.icon(cur);
     b.querySelector(".pv").textContent = INS.name(cur);
-    b.setAttribute("aria-label", "Instrument: " + INS.name(cur) + ". Press to change, or press I.");
+    b.setAttribute("aria-label", "Instrument: " + INS.name(cur) + ". Press to change, or press " + keyWord("instrument") + ".");
+    stripRefresh(cur);
   }
   /* The pitch guide: the instrument icon rises with the note and pulses on every hit, and a dot
      slides along a Low to High track. The dot follows pitch, so flipping pitch reverses it too. */
@@ -1831,7 +1850,7 @@
     var b = $("sceneBtn");
     if (!b) return;
     b.querySelector(".pv").textContent = sceneLabel(S.scene);
-    b.setAttribute("aria-label", "Scene layer: " + sceneLabel(S.scene) + ". Press to change, or press U.");
+    b.setAttribute("aria-label", "Scene layer: " + sceneLabel(S.scene) + ". Press to change, or press " + keyWord("scene") + ".");
   }
   function setScene(k) {
     initAudio();
@@ -1918,6 +1937,41 @@
   };
   window.addEventListener("storage", function (e) { if (e.key === "danigPan") setPan(e.newValue !== "0", true); }); // the jukebox page changed it
 
+  /* ===== INSTRUMENT STRIP (laptop): one button per instrument between the video and the sidebar ===== */
+  function stripBuild() {
+    var box = $("istripIn"), list = INS.cycle();
+    $("istrip").hidden = !SHOW_STRIP;
+    $("panel").classList.toggle("nostrip", !SHOW_STRIP);
+    if (!SHOW_STRIP) return;
+    box.innerHTML = "";
+    list.forEach(function (id, i) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "ib"; b.dataset.id = id;
+      b.setAttribute("data-act", "instrumentPick"); b.setAttribute("data-i", i);
+      b.setAttribute("aria-label", INS.name(id));
+      b.setAttribute("aria-pressed", "false");
+      b.title = INS.name(id);
+      b.innerHTML = INS.icon(id);
+      b.addEventListener("mousedown", function (e) { e.preventDefault(); });
+      b.addEventListener("click", function () { if (S.view === "play") setInstrument(id); });
+      box.appendChild(b);
+    });
+  }
+  function stripRefresh(cur) {
+    [].forEach.call($("istripIn").children, function (b) { b.setAttribute("aria-pressed", b.dataset.id === cur ? "true" : "false"); });
+  }
+  /* Speed is one button that steps to the next speed, then wraps round. The select stays as the value holder. */
+  function rateRefresh() {
+    var o = $("rate").selectedOptions[0];
+    $("rateName").textContent = o.text;
+    $("rateBtn").setAttribute("aria-label", "Speed: " + o.text + ". Press to change, or press " + keyWord("speed") + ".");
+  }
+  window.spotStepSpeed = function (d) {
+    var s = $("rate"), i = s.selectedIndex + d;
+    if (i < 0 || i >= s.options.length) return false;
+    s.selectedIndex = i; s.dispatchEvent(new Event("change")); return true;
+  };
+
   /* The three picker buttons: click = next. Mouse clicks never take focus, so Space always means play. */
   function buildPickers() {
     [["instBtn", nextInstrument], ["sceneBtn", nextScene]].forEach(function (p) {
@@ -1929,6 +1983,14 @@
         p[1]();
       });
     });
+    $("rateBtn").addEventListener("mousedown", function (e) { e.preventDefault(); });
+    $("rateBtn").addEventListener("click", function () {
+      var s = $("rate"); s.selectedIndex = (s.selectedIndex + 1) % s.options.length; s.dispatchEvent(new Event("change"));
+      say("Speed " + s.selectedOptions[0].text + ". Playback restarted.");
+    });
+    $("rate").addEventListener("change", rateRefresh);
+    rateRefresh();
+    stripBuild();
     refreshInstrument();
     refreshScene();
     refreshScaleUI();
@@ -2119,13 +2181,13 @@
         return;
       }
       if (tg === "INPUT" || typing) return;
-      if (S.view === "play" && (e.key === "," || e.key === ".")) {
+      if (S.view === "play" && (DK.is(e, "seekBack") || DK.is(e, "seekForward"))) {
         if (S.loaded) {
           S.video.currentTime = Math.max(
             0,
             Math.min(
               S.video.duration,
-              S.video.currentTime + (e.key === "." ? 5 : -5),
+              S.video.currentTime + (DK.is(e, "seekForward") ? 5 : -5),
             ),
           );
         }

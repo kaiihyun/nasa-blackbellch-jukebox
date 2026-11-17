@@ -8,68 +8,46 @@
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>DANIG: the world, through sound</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" /><link rel="stylesheet" href="css/tokens.css" />
-    <link rel="stylesheet" href="css/base.css" />
-    <link rel="stylesheet" href="css/glass.css" />
-    <link rel="stylesheet" href="locationmode/location.css" />
-    <link rel="stylesheet" href="css/kit.css" />
-    <link rel="stylesheet" href="css/loader.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" /><link rel="stylesheet" href="styles.css" />
   </head>
-  <body class="home">
+  <body class="home page-location">
     <a class="skip" href="#main">Skip to main content</a>
-    <header class="bar"><button id="exitBtn" type="button" class="btn sm" aria-keyshortcuts="Escape"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd></button><img class="logo" src="assets/ui/danig_logo.svg" alt="DANIG"><div class="bar-end"><button id="aboutBtn" type="button" class="btn sm" aria-keyshortcuts="A">About <kbd>A</kbd></button><button id="helpBtn" type="button" class="btn sm" aria-keyshortcuts="?"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.5 1 2-3.5zM12 8.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z"/></svg> Setting <kbd>?</kbd></button></div></header>
+    <header class="bar"><button id="exitBtn" type="button" class="btn sm" data-act="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit</button><img class="logo" src="assets/ui/danig_logo.svg" alt="DANIG"><div class="bar-end"><button id="aboutBtn" type="button" class="btn sm" data-act="about">About</button><button id="helpBtn" type="button" class="btn sm" data-act="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.5 1 2-3.5zM12 8.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z"/></svg> Setting</button></div></header>
 <div class="views">
-      <section id="landing" class="landing" aria-label="Welcome"><img class="logo" src="assets/ui/danig_logo.svg"  alt="Danig Logo"/><h1>DANIG</h1><p class="tag">The world, through sound.</p><button id="homeStart" type="button" class="btn pill big">Start</button></section>
+      <section id="landing" class="landing" aria-label="Welcome"><img class="logo" src="assets/ui/danig_logo.svg"  alt="Danig Logo"/><h1>DANIG</h1><p class="tag">The world, through sound.</p><button id="homeStart" type="button" class="btn pri big" data-act="start">Start</button></section>
       <section id="modes" class="modes-screen" aria-label="Choose a mode">
         <h2 class="mtitle">How do you want to listen?</h2>
         <div class="modegrid">
-          <button id="modeLoc" type="button" class="modecard glass" aria-keyshortcuts="1">
+          <button id="modeLoc" type="button" class="modecard glass" data-act="modeLocation" data-nokbd>
             <div class="modeshot" aria-hidden="true"><img src="assets/ui/mode-location.jpg" alt=""><span class="marker"></span></div>
-            <h3>Location mark <kbd>1</kbd></h3>
+            <h3>Location mark <kbd class="kb" data-key="modeLocation" aria-hidden="true"></kbd></h3>
             <p>Pick one place on the map and hear what happens there.</p>
           </button>
-          <button id="modeSweep" type="button" class="modecard glass" aria-keyshortcuts="2">
+          <button id="modeSweep" type="button" class="modecard glass" data-act="modeSweep" data-nokbd>
             <div class="modeshot" aria-hidden="true"><img src="assets/ui/mode-sweep.jpg" alt=""><div class="gray"><img src="assets/ui/mode-sweep.jpg" alt=""></div><span class="line"></span></div>
-            <h3>Sweep <kbd>2</kbd></h3>
+            <h3>Sweep <kbd class="kb" data-key="modeSweep" aria-hidden="true"></kbd></h3>
             <p>A glowing line sweeps west to east and plays every column it crosses.</p>
           </button>
         </div>
       </section>
       <main id="main" class="wrap">
         <div id="top" class="top">
-          <div class="carousel"><button id="prev" type="button" class="arrow" tabindex="-1" aria-label="Previous dataset"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="mid">
+          <div class="carousel"><button id="prev" type="button" class="arrow" tabindex="-1" aria-label="Previous dataset" data-act="prev" data-nokbd><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><div class="mid">
             <div class="ghost l" id="ghostL" aria-hidden="true"></div><div class="ghost r" id="ghostR" aria-hidden="true"></div>
             <section id="blurb" class="blurb slide glass" aria-label="Selected dataset">
               <h2 id="pTitle"></h2>
               <div class="gradbox" aria-hidden="true"></div>
               <div id="slots" class="slots" role="group" aria-label="Upload your own files">
-                <button id="slotVideo" type="button" class="slot vid"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4.5-2.5z"/></svg><span class="t"><strong>Upload video</strong><small>MP4, MOV, WebM</small></span></button>
-                <button id="slotLegend" type="button" class="slot leg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="7" rx="2"/><path d="M7 9h10"/><path d="M6 15.5v3M10 15.5v3M14 15.5v3M18 15.5v3"/></svg><span class="t"><strong>Upload legend</strong><small>PNG, JPG, WebP</small></span></button>
+                <button id="slotVideo" type="button" class="slot vid" aria-label="Upload video" data-act="uploadVideo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4.5-2.5z"/></svg></button>
+                <button id="slotLegend" type="button" class="slot leg" aria-label="Upload legend picture" data-act="uploadLegend"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="7" rx="2"/><path d="M7 9h10"/><path d="M6 15.5v3M10 15.5v3M14 15.5v3M18 15.5v3"/></svg></button>
               </div>
               <p id="pDesc"></p>
               <p class="mono" id="pIdx"></p>
             </section>
-          <section
-            id="source"
-            class="src glass"
-            aria-label="Upload your own data"
-          >
-            <select id="preset" hidden></select>
-            <h3>Your own data</h3>
-            <div class="upbtns">
-              <button id="pickVideo" type="button" class="upbtn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M10 9.5v5l4.5-2.5z"/></svg>
-                <span class="t"><strong>Upload video</strong><small id="vName">MP4</small></span>
-              </button>
-              <button id="pickLegend" type="button" class="upbtn">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="7" rx="2"/><path d="M7 9h10"/><path d="M6 15.5v3M10 15.5v3M14 15.5v3M18 15.5v3"/></svg>
-                <span class="t"><strong>Upload legend</strong><small id="lName">PNG, JPG, WebP</small></span>
-              </button>
-            </div>
-            <p id="upHint" class="uphint">Add your video and legend picture to unlock the settings below.</p>
-            <input id="file" type="file" accept="video/mp4,.mp4" hidden />
-            <input id="legendFile" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
-            <div class="upcols" id="upcols" inert>
+          <select id="preset" hidden></select>
+          <section id="source" class="src glass" aria-label="Settings for your own data">
+            <h3>Settings</h3>
+            <div class="upcols" id="upcols">
               <div class="upcol" role="group" aria-labelledby="liH">
                 <h4 id="liH">Legend info</h4>
                 <div class="field"><label for="upLabel">What do the colors show?</label>
@@ -98,62 +76,54 @@
                 <div id="instGrid" class="igrid" aria-label="Instrument"></div>
                 <p id="instName" class="iname"></p>
                 <select id="upInstr" hidden></select>
-                <button id="sceneCycle" type="button" class="scenebtn">
+                <button id="sceneCycle" type="button" class="scenebtn" data-act="scene" data-nokbd>
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 12l9 5 9-5"/><path d="M3 16l9 5 9-5"/></svg>
-                  <span class="t"><small>Background texture</small><strong id="sceneName"></strong></span>
+                  <span class="t"><small>Background texture</small><strong id="sceneName"></strong></span><kbd class="kb" data-key="scene" aria-hidden="true"></kbd>
                 </button>
                 <select id="upScene" hidden></select>
               </div>
             </div>
             <div class="row">
-              <button id="load" type="button" class="btn pri">Load and continue</button>
-              <button id="cancelForm" type="button" class="btn">Cancel</button>
+              <button id="load" type="button" class="btn pri" data-act="load">Load and continue</button>
+              <button id="cancelForm" type="button" class="btn" data-act="cancel">Cancel</button>
             </div>
-          </section></div><button id="next" type="button" class="arrow" tabindex="-1" aria-label="Next dataset"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>
-          <button id="start" type="button" class="btn pri pill big"><svg width="20" height="20" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" /></svg><span id="startLabel">Play</span></button>
+          </section></div><button id="next" type="button" class="arrow" tabindex="-1" aria-label="Next dataset" data-act="next" data-nokbd><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>
+          <button id="start" type="button" class="btn pri big" data-act="start"><svg width="20" height="20" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" /></svg><span id="startLabel">Play</span></button>
         </div></main>
 
-      <input id="swVideo" type="file" accept="video/*,.mp4,.mov,.m4v,.webm" hidden /><input id="swLegend" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
+      <input id="swVideo" type="file" hidden /><input id="swLegend" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden />
       <div id="flow" class="flow" role="group" aria-label="Presets" hidden></div>
 
       <div id="panel" class="panel">
         <section class="stage" aria-label="Player">
           <div class="topline">
             <h2 class="ptitle" id="pTitle2"></h2>
-            <label class="vsize" for="vsize"><span>Video size <kbd>V</kbd></span>
-              <input id="vsize" type="range" min="30" max="100" step="5" value="100" aria-label="Video size">
-            </label>
           </div>
           <figure class="vidfig">
             <figcaption class="sr">Source video. Click it to move the listening spot.</figcaption>
-            <div class="vwrap">
-              <video id="video" muted playsinline></video>
-              <div id="vcol" class="ov"></div>
+            <div class="vbox">
+              <div class="vwrap">
+                <video id="video" muted playsinline></video>
+                <div id="vcol" class="ov"></div>
+              </div>
+              <input id="seek" type="range" min="0" max="1000" value="0" aria-label="Seek in video" />
+            <div class="actions">
+              <button id="play" type="button" class="btn pri" disabled data-act="play">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" /></svg>
+                Play
+              </button>
+              <button id="key" type="button" class="btn" data-act="soundKey">Sound key</button>
+              <button id="describe" type="button" class="btn" data-act="describe">Describe</button>
+            </div>
             </div>
           </figure>
           <section id="info-now" class="readout" hidden>
             <h3 class="sr">Now</h3>
             <p id="now">Nothing yet</p>
           </section>
-          <div class="ctl">
-            <input
-              id="seek"
-              type="range"
-              min="0"
-              max="1000"
-              value="0"
-              aria-label="Seek in video"
-            />
-            <div class="actions">
-              <button id="play" type="button" class="btn pri" disabled aria-keyshortcuts="Space">
-                <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true"><path d="M3 1.5v11l9-5.5z" /></svg>
-                Play
-              </button>
-              <button id="key" type="button" class="btn" aria-keyshortcuts="K">Sound key <kbd>K</kbd></button>
-              <button id="describe" type="button" class="btn" aria-keyshortcuts="D">Describe <kbd>D</kbd></button>
-            </div>
-          </div>
         </section>
+
+        <div id="istrip" class="istrip" role="group" aria-label="Instruments"><div id="istripIn" class="istrip-in"></div></div>
 
         <div class="rail">
           <figure class="mapfig card">
@@ -168,21 +138,22 @@
             ></canvas>
           </figure>
 
-          <aside id="config" class="glass card ctrls" aria-label="Controls">
+          <aside id="config" class="card ctrls" aria-label="Controls">
             <canvas id="pitchSpec" class="pitchspec" width="480" height="64" aria-hidden="true"></canvas>
             <div class="picks">
-              <button id="instBtn" type="button" class="btn pick" aria-keyshortcuts="I">
+              <button id="instBtn" type="button" class="btn pick" data-act="instrument" data-selflabel>
                 <span class="ico" aria-hidden="true"></span>
-                <span class="pl"><small>Instrument <kbd>I</kbd></small><strong class="pv"></strong></span>
+                <span class="pl"><small>Instrument</small><strong class="pv"></strong></span>
               </button>
-              <button id="sceneBtn" type="button" class="btn pick" aria-keyshortcuts="U">
-                <span class="pl"><small>Scene <kbd>U</kbd></small><strong class="pv"></strong></span>
+              <button id="sceneBtn" type="button" class="btn pick" data-act="scene" data-selflabel>
+                <span class="pl"><small>Scene</small><strong class="pv"></strong></span>
               </button>
             </div>
             <div class="row2">
               <div>
-                <label for="rate">Speed</label>
-                <select id="rate">
+                <label for="rateBtn">Speed</label>
+                <button id="rateBtn" type="button" class="btn" data-act="speed" data-selflabel><span id="rateName">Normal</span></button>
+                <select id="rate" hidden>
                   <option value="0.5">Slow</option>
                   <option value="1" selected>Normal</option>
                   <option value="2">Fast</option>
@@ -202,7 +173,7 @@
             </div>
           </aside>
 
-          <aside id="info-legends" class="glass card" aria-label="Legend">
+          <aside id="info-legends" class="card" aria-label="Legend">
             <h3>Legend</h3>
             <div id="legendView"></div>
           </aside>
@@ -219,7 +190,7 @@
     <div id="live" role="status" aria-live="polite">Not loaded yet.</div>
 
     <dialog id="about" class="sheet" aria-labelledby="aboutT">
-      <button type="button" class="exit" data-close><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd></button>
+      <button type="button" class="exit" data-close data-act="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit</button>
       <h2 id="aboutT">About</h2>
       <p>DANIG comes from two Tagalog words: <em>daigdig</em>, the world, and <em>tinig</em>, sound. Hence the motto: the world, through sound.</p>
       <p>DANIG turns visual data into soundscapes. It is a jukebox of preset videos from NASA&rsquo;s Earth Information Center, each one a view of our changing planet, set to music that is easy on the ears. You can also upload your own video and color bar, then choose an instrument and a background scene.</p>
@@ -229,9 +200,9 @@
       <ul id="aboutScenes" class="about-chips"></ul>
     </dialog>
     <dialog id="settings" class="sheet" aria-labelledby="setT">
-      <button type="button" class="exit" data-close><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit <kbd>Esc</kbd></button>
+      <button type="button" class="exit" data-close data-act="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit</button>
       <h2 id="setT">Setting</h2>
-      <h3 id="tsL">Text size <kbd>T</kbd></h3>
+      <h3 id="tsL">Text size <kbd class="kb" data-key="textSize" aria-hidden="true"></kbd></h3>
       <div id="sizes" class="seg" role="radiogroup" aria-labelledby="tsL">
         <button type="button" role="radio" aria-checked="true">Normal</button><button type="button" role="radio" aria-checked="false">Large</button><button type="button" role="radio" aria-checked="false">Extra large</button><button type="button" role="radio" aria-checked="false">Largest</button>
       </div>
@@ -242,12 +213,10 @@
       <div class="pager"><button id="kBack" type="button" class="btn pri pill karrow" aria-label="Previous page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><span id="kPage" class="mono"></span><button id="kNext" type="button" class="btn pri pill karrow" aria-label="Next page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>
     </dialog>
 
-    <script src="js/paths.js"></script>
-    <script src="main_config.js"></script>
+    <script src="globalconfig.js"></script>
     <script src="locationmode/config.js"></script>
-    <script src="js/loader.js"></script>
     <script src="sweepmode/presets.js"></script>
-    <script src="js/bridge.js"></script>
+    <script src="global.js"></script>
     <script src="locationmode/instruments/registry.js"></script>
     <script src="locationmode/instruments/builtin.js"></script>
     <script src="locationmode/scenes/settings.js"></script>
@@ -255,9 +224,6 @@
     <script src="locationmode/scenes/engine.js"></script>
     <script src="locationmode/plugins.js"></script>
     <script src="locationmode/engine.js"></script>
-    <script src="js/ui.js"></script>
     <script src="locationmode/upload-form.js"></script>
-    <script src="js/fit.js"></script>
-    <script src="js/glass.js"></script>
   </body>
 </html>

@@ -1,18 +1,13 @@
 /* ============================================================
    LOCATION MODE CONFIG. Change things here, not in engine.js.
-   (Files: DANIG.video("x.mp4") = assets/videos/x.mp4, DANIG.legend("x.png") = assets/legends/x.png. Global settings: ../config.js)
+   (Files: DANIG.video("x.mp4") = assets/videos/x.mp4, DANIG.legend("x.png") = assets/legends/x.png. Global settings, keys and switches: ../globalconfig.js)
    ============================================================ */
 window.CONFIG = Object.assign(window.CONFIG || {}, {
 
   /* --- GRID: how coarsely we look at each frame (columns x rows) --- */
   grid: { cols: 18, rows: 9 },
 
-  /* --- SCREEN: switch parts of the player on or off --- */
-  ui: {
-    showMixer: true,          // the "Playing now" list with one spectrum and mute per sound layer
-    showScenePicker: true,    // the scene layer button (and the U key)
-    duckWhileSpeaking: false  // true = lower the music while announcements are read
-  },
+  /* Screen switches (mixer, scene button, instrument buttons...) and every keyboard shortcut live in ../globalconfig.js */
 
   /* --- PLACES: named spots for "One place" listening. lat: north is +, lon: east is +.
      Assumes the video is a whole flat world map (-180 to 180, 90 to -90). --- */
