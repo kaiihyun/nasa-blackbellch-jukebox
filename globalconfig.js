@@ -55,7 +55,6 @@ DANIG.keys = {
   mute: ["Shift+1", "Shift+2", "Shift+3", "Shift+4", "Shift+5", "Shift+6", "Shift+7", "Shift+8", "Shift+9", "Shift+0"],   /* rows of "Playing now" */
   /* keys that have no button */
   textSize: "T",
-  colorShift: "C",             /* Earth color shift on or off (Setting) */
   silence: "S",
   pan: "P",
   restart: "R",
@@ -75,8 +74,8 @@ CONFIG.ui = {
   showMixer: true,             /* the "Playing now" list with one spectrum and a mute button per sound layer */
   showScenePicker: true,       /* the background texture button and its key */
   showShortcutBadges: true,    /* the key shown to the right of each button's text (screen readers always hear it) */
-  showTextSize: true,          /* the "Text size" control in Setting */
-  showGlassOpacity: true,      /* the "Glass opacity" slider in Setting */
+  showTextSize: true,          /* the "Text size" control in Settings */
+  showGlassOpacity: true,      /* the "Glass opacity" slider in Settings */
   sweepAcceptsImages: true,    /* Sweep upload card: PNG and JPEG pictures are allowed next to videos */
   duckWhileSpeaking: false     /* true = lower the music while announcements are read */
 };
@@ -96,13 +95,13 @@ CONFIG.globe = {
   bars: 20,            /* bars in the 3D spectrum ring that rises at the mouse */
   ring: 5,             /* radius of that ring, in degrees of the globe */
   barHeight: 0.3,      /* tallest bar, as a fraction of the globe's radius */
-  colorShift: false,    /* the color drift while hovering. The On/Off switch in Setting overrides this */
+  colorShift: false,    /* the color drift while hovering. Developers only: there is no switch for it in Settings */
   hoverSound: true,    /* the instrument plays under the mouse (starts after the first click or key press) */
   instrument: "accordion",
   lowMidi: 55,         /* lowest note; the top of the globe is three octaves higher */
   volume: 0.3,
-  dimDelay: 1,          /* seconds after the globe starts rising before it begins to blur and go grey */
-  dimTime: 3,           /* seconds the blur and grey take to fully arrive */
+  dimDelay: 4,          /* seconds after the globe starts rising before it begins to blur and go grey */
+  dimTime: 8,           /* seconds the blur and grey take to fully arrive */
   noteGap: 110          /* ms between notes when you glide over the globe (lower = more flowing) */
   /* texture: "assets/ui/your-map.jpg"   <- optional: your own equirectangular map instead of the CDN one */
 };

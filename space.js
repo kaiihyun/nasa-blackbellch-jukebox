@@ -286,7 +286,7 @@
     if (Math.abs(Hv.tr - Hv.rr) < 0.5) Hv.rr = Hv.tr;
     if (Hv.rr > 0.5) {
       if (!Hv.shown) { rev.style.display = "block"; Hv.shown = true; }
-      var shift = D.hueShift !== false && !reduce && G.hueSpeed > 0;   /* the On/Off switch in Setting */
+      var shift = D.hueShift !== false && !reduce && G.hueSpeed > 0;   /* CONFIG.globe.colorShift (developers only) */
       if (shift) Hv.hue = (Hv.hue + dt * G.hueSpeed) % 360;
       else if (Hv.hue) { var tg = Hv.hue > 180 ? 360 : 0; Hv.hue += (tg - Hv.hue) * Math.min(1, dt * 4); if (Math.abs(tg - Hv.hue) < 0.3) Hv.hue = 0; }   /* off: glide back to the original colors */
       var tinted = shift || Hv.hue !== 0;

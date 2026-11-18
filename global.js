@@ -1,7 +1,7 @@
 /* ============================================================
    global.js: everything both modes share. Loaded by index.html and sweepmode/sweep.html, after globalconfig.js.
      1  Keys          reads DANIG.keys (globalconfig.js): key labels, the badge on each button, what screen readers hear
-     2  Setting       About and Setting sheets, text size, glass opacity, the shortcut list
+     2  Setting       About and Settings sheets, text size, glass opacity, the shortcut list
      3  Keyboard      one handler: every button that has data-act="name" is clicked by its key
      4  Main page     landing, mode picker, Exit, the loading screen, the Sweep player, the coverflow (index.html only)
      5  Fit           shrinks a sheet or form that would otherwise be cut off
@@ -84,7 +84,7 @@
   if (UI.showTextSize === false) { [$("tsL"), $("sizes")].forEach(function (n) { if (n) n.hidden = true; }); }
   if (UI.showGlassOpacity === false) { var gl = $("glL"); if (gl) gl.hidden = true; var gr = $("glassAmt"); if (gr && gr.parentNode) gr.parentNode.hidden = true; }
 
-  /* ---------- 2. Setting: sheets, text size, glass, shortcut list ---------- */
+  /* ---------- 2. Settings: sheets, text size, glass, shortcut list ---------- */
   var about = $("about"), sets = $("settings"), lastF = null;
   function openDlg(d) {
     var o = d === about ? sets : about;
@@ -113,20 +113,8 @@
   try { applySize(Math.max(0, Math.min(3, +localStorage.getItem("danigSize") || 0)), true); } catch (e) { applySize(0, true); }
   window.addEventListener("storage", function (e) { if (e.key === "danigSize" && e.newValue !== null) applySize(Math.max(0, Math.min(3, +e.newValue || 0)), true); });
 
-  /* Earth color shift (the landing globe): On = the colors under the mouse drift round the color wheel, Off = the original colors. space.js reads DANIG.hueShift. */
-  D.hueShift = !(UI && window.CONFIG.globe && window.CONFIG.globe.colorShift === false);
-  var hb = [].slice.call(document.querySelectorAll("#hueSeg [role=radio]"));
-  function applyHue(on, quiet) {
-    D.hueShift = on;
-    hb.forEach(function (b, j) { var sel = (j === 0) === on; b.setAttribute("aria-checked", sel); b.tabIndex = sel ? 0 : -1; });
-    try { localStorage.setItem("danigHue", on ? "1" : "0"); } catch (e) {}
-    window.dispatchEvent(new Event("danig:hue"));
-    if (!quiet) say("Earth color shift " + (on ? "on" : "off") + ".");
-  }
-  hb.forEach(function (b, j) { b.addEventListener("click", function () { applyHue(j === 0); }); });
-  D.toggleHue = function () { if (hb.length) applyHue(!D.hueShift); };
-  (function () { var sv = null; try { sv = localStorage.getItem("danigHue"); } catch (e) {} applyHue(sv === null ? D.hueShift : sv !== "0", true); })();
-  window.addEventListener("storage", function (e) { if (e.key === "danigHue" && e.newValue !== null) applyHue(e.newValue !== "0", true); });
+  /* Earth color shift (the landing globe) is a developer setting: CONFIG.globe.colorShift in globalconfig.js. space.js reads DANIG.hueShift. */
+  D.hueShift = !(window.CONFIG && window.CONFIG.globe && window.CONFIG.globe.colorShift === false);
 
   (function glass() {                                         /* the "Glass opacity" slider sets --glass-alpha */
     var KEY = "danigGlass", root = document.documentElement, sl = $("glassAmt"), out = $("glassVal");
@@ -145,14 +133,14 @@
     window.addEventListener("storage", function (e) { if (e.key === KEY && e.newValue !== null) apply(parseFloat(e.newValue), false); });
   })();
 
-  /* the shortcut list in Setting is written from the config, so it can never disagree with the buttons */
+  /* the shortcut list in Settings is written from the config, so it can never disagree with the buttons */
   function kbs() { return [].slice.call(arguments).map(function (k) { return "<kbd>" + k + "</kbd>"; }).join(" "); }
   function L(act, i) { return D.label(D.keyOf(act, i)); }
   function both(a, b) { return kbs(L(a), L(b)); }
   var PAGES = MAIN ? [
     ["Menu", [[both("prev", "next"), "Previous or next dataset"], [kbs(L("start")), "Start, then open the player"],
       [kbs(L("modeLocation")) + " " + kbs(L("modeSweep")), "Location mark or Sweep"], [kbs(L("uploadVideo")) + " " + kbs(L("uploadLegend")), "Upload card: video or legend"],
-      [kbs(L("about")), "About"], [kbs(L("settings")), "Setting and shortcuts"], [kbs(L("textSize")), "Change text size"], [kbs(L("colorShift")), "Earth color shift on or off"], [kbs(L("exit")), "Back one screen"]]],
+      [kbs(L("about")), "About"], [kbs(L("settings")), "Settings and shortcuts"], [kbs(L("textSize")), "Change text size"], [kbs(L("exit")), "Back one screen"]]],
     ["Player", [[kbs(L("play")), "Play or pause"], [kbs(L("silence")), "Silence now (pause)"], [kbs(L("seekBack")) + " " + kbs(L("seekForward")), "Seek back or forward 5 seconds"],
       [kbs("&larr;", "&rarr;", "&uarr;", "&darr;"), "Move the listening spot"], [kbs(L("nextPlace")) + " / " + kbs("Shift") + "+" + kbs(L("nextPlace")), "Next or previous named place"],
       [kbs(L("restart")), "Restart from the beginning"], [kbs(L("soundKey")), "Play the sound key (pauses playback)"], [kbs(L("describe")), "Describe this moment"]]],
@@ -164,7 +152,7 @@
     ["Map", [[kbs(L("focusMap")), "Focus the map"], [kbs("Click") + " or " + kbs("Tap"), "Place the spot"], [kbs(L("settings")), "Open or close this list"], [both("prev", "next"), "In this list: previous or next page"]]]
   ] : [
     ["Playlist", [[both("prev", "next"), "Previous or next track"], [kbs("1") + " to " + kbs("9"), "Jump to a track"],
-      [kbs(L("start")), "Play the track"], [kbs(L("about")), "About"], [kbs(L("settings")), "Setting and shortcuts"],
+      [kbs(L("start")), "Play the track"], [kbs(L("about")), "About"], [kbs(L("settings")), "Settings and shortcuts"],
       [kbs(L("textSize")), "Change text size"], [kbs(L("exit")), "Back one screen"]]],
     ["Player", [[kbs(L("play")), "Play or stop"], [kbs(L("pan")), "Panning on or off"], [kbs(L("silence")), "Stop the sound"], [kbs(L("restart")), "Restart the sweep from the west"],
       [kbs(L("describe")), "Describe this moment"], [kbs(L("exit")), "Back to the playlist (the track is chosen there)"]]],
@@ -393,7 +381,6 @@
       if (e.target.id === "glassAmt" && /^(Arrow|Home$|End$|Page)/.test(k)) { e.stopImmediatePropagation(); return; }
       if (D.is(e, "settings")) { e.preventDefault(); (about.open ? about : sets).close(); }
       else if (D.is(e, "textSize") && UI.showTextSize !== false && !(e.ctrlKey || e.metaKey || e.altKey)) applySize((si + 1) % SIZES.length);
-      else if (D.is(e, "colorShift") && hb.length && !(e.ctrlKey || e.metaKey || e.altKey)) D.toggleHue();
       else if (sets.open && (k === "ArrowLeft" || k === "ArrowRight")) { e.preventDefault(); $(k === "ArrowRight" ? "kNext" : "kBack").click(); }
       e.stopImmediatePropagation(); return;
     }
@@ -408,7 +395,6 @@
     if (D.is(e, "settings")) { e.preventDefault(); openDlg(sets); return; }
     if (D.is(e, "about")) { e.preventDefault(); openDlg(about); return; }
     if (D.is(e, "textSize") && UI.showTextSize !== false) { applySize((si + 1) % SIZES.length); return; }
-    if (D.is(e, "colorShift") && hb.length) { D.toggleHue(); return; }
 
     var cl = body.classList, playing = cl.contains("playing");
     if (MAIN && cl.contains("home")) {                          /* landing: only Start is live */

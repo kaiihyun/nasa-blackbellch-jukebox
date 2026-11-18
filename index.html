@@ -19,7 +19,7 @@
       <rect x="0" y="0" width="100%" height="100%" fill="#000" mask="url(#introMask)"/>
     </svg>
     <a class="skip" href="#main">Skip to main content</a>
-    <header class="bar"><button id="exitBtn" type="button" class="btn sm" data-act="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit</button><img class="logo" src="assets/ui/danig_logo.svg" alt="DANIG"><div class="bar-end"><button id="aboutBtn" type="button" class="btn sm" data-act="about">About</button><button id="helpBtn" type="button" class="btn sm" data-act="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.5 1 2-3.5zM12 8.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z"/></svg> Setting</button></div></header>
+    <header class="bar"><button id="exitBtn" type="button" class="btn sm" data-act="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit</button><img class="logo" src="assets/ui/danig_logo.svg" alt="DANIG"><div class="bar-end"><button id="aboutBtn" type="button" class="btn sm" data-act="about">About</button><button id="helpBtn" type="button" class="btn sm" data-act="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.5 1 2-3.5zM12 8.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z"/></svg> Settings</button><a id="svsCard" class="svs glass" href="https://svs.gsfc.nasa.gov/" target="_blank" rel="noopener noreferrer"><span class="svs-img" aria-hidden="true"></span><span class="svs-t"><strong>NASA SVS</strong>Get access to NASA&rsquo;s open source data visualizations<span class="sr"> (opens in a new tab)</span></span></a></div></header>
 <div class="views">
       <section id="landing" class="landing" aria-label="Welcome">
         <div id="disc" class="disc" aria-hidden="true"></div>
@@ -226,17 +226,13 @@
     </dialog>
     <dialog id="settings" class="sheet" aria-labelledby="setT">
       <button type="button" class="exit" data-close data-act="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit</button>
-      <h2 id="setT">Setting</h2>
+      <h2 id="setT">Settings</h2>
       <h3 id="tsL">Text size <kbd class="kb" data-key="textSize" aria-hidden="true"></kbd></h3>
       <div id="sizes" class="seg" role="radiogroup" aria-labelledby="tsL">
         <button type="button" role="radio" aria-checked="true">Normal</button><button type="button" role="radio" aria-checked="false">Large</button><button type="button" role="radio" aria-checked="false">Extra large</button><button type="button" role="radio" aria-checked="false">Largest</button>
       </div>
       <h3 id="glL">Glass opacity</h3>
       <div class="rangerow"><input type="range" id="glassAmt" min="0" max="80" step="2" value="26" aria-labelledby="glL" /><b id="glassVal">26%</b></div>
-      <h3 id="csL">Earth color shift <kbd class="kb" data-key="colorShift" aria-hidden="true"></kbd></h3>
-      <div id="hueSeg" class="seg" role="radiogroup" aria-labelledby="csL">
-        <button type="button" role="radio" aria-checked="true">On</button><button type="button" role="radio" aria-checked="false">Off</button>
-      </div>
       <h2 class="sub">Keyboard shortcuts</h2>
       <div id="kWrap" class="kwrap" aria-live="polite"><table><caption class="sr">Shortcuts</caption><tbody id="kRows"></tbody></table></div>
       <div class="pager"><button id="kBack" type="button" class="btn pri pill karrow" aria-label="Previous page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><span id="kPage" class="mono"></span><button id="kNext" type="button" class="btn pri pill karrow" aria-label="Next page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>

@@ -1,5 +1,4 @@
 # DANIG: the world, through sound
-www.danig.earth
 
 www.danig.earth
 
@@ -33,7 +32,7 @@ Every button has a key. It shows on the right of the button text, and screen rea
 | Where | Key | Action |
 | --- | --- | --- |
 | Everywhere | `Esc` | Back one screen, or close a sheet or error |
-| Everywhere | `A` / `?` / `T` | About / Setting and shortcuts / text size |
+| Everywhere | `A` / `?` / `T` | About / Settings and shortcuts / text size |
 | Mode screen | `1` / `2` | Location mark / Sweep |
 | Carousel | `←` `→`, `Enter` | Change dataset, start |
 | Upload cards | `V` / `L` | Upload video / upload legend |
@@ -53,6 +52,9 @@ Everything global is in `globalconfig.js`:
 1. Where files live (`DANIG.dirs`).
 2. `DANIG.keys`: one key per button.
 3. `CONFIG.ui`: on/off switches for features.
+4. `CONFIG.globe`: the landing globe (`dimDelay`, `dimTime`, `noteGap`, and `colorShift`, the color drift, which is a developer setting with no switch for users).
+
+The NASA SVS card (top right of the landing and mode screens) uses `assets/ui/nasa-svs.jpg`.
 
 ```js
 CONFIG.ui = {
@@ -98,7 +100,7 @@ tools/                make-plugins.py
 
 - Every screen can be used with the keyboard alone, and nothing on the page scrolls.
 - State changes are announced through live regions. Errors open a modal alert dialog that takes focus and reads its message.
-- Text size (four steps) and glass opacity are in Setting.
+- Text size (four steps) and glass opacity are in Settings.
 - Motion is reduced when the system asks for it.
 
 ## Credits
