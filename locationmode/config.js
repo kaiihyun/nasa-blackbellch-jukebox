@@ -93,8 +93,8 @@ window.CONFIG = Object.assign(window.CONFIG || {}, {
   volume: 1.2,
     
   /* Instruments: pluck, bell, sparkle, harp, xylophone, flute, piano, accordion */
- timbres: { liquid:"bell", frozen:"bell", temperature:"harp", seatemperature:"harp", default:"pluck",
-  carbon_monoxide:"accordion", ozone:"pianp", nitrogen_oxide:"harp" },
+ timbres: { liquid:"bell", frozen:"bell", temperature:"accordion", seatemperature:"harp", default:"pluck",
+  carbon_monoxide:"accordion", ozone:"piano", nitrogen_oxide:"harp" },
   noteGain: { liquid: 8, default: 1 },   // per legend type, multiplies note loudness
  
 

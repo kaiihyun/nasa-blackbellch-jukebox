@@ -35,6 +35,8 @@
   /* ---------- 1. Intro ---------- */
   var svg = $("intro"), g = $("introScale"), tx = $("introText"), mask = $("introMask");
   function finish() {
+    if (D.riseGlobe) D.riseGlobe();
+    if (D.colorGlobe) D.colorGlobe();
     body.classList.remove("intro"); body.classList.add("reveal", "ready");
     if (svg) svg.style.display = "none";
   }
@@ -88,6 +90,11 @@
     } catch (e) {}
     wipe.setAttribute("cx", cx); wipe.setAttribute("cy", cy);
   }
+  /* a black curtain over the letters: the screen is plain black until everything (the globe too) is loaded */
+  var curtain = document.createElementNS(NS, "rect");
+  curtain.setAttribute("x", 0); curtain.setAttribute("y", 0); curtain.setAttribute("width", "100%"); curtain.setAttribute("height", "100%");
+  curtain.setAttribute("fill", "#000"); svg.appendChild(curtain);
+
   size(); window.addEventListener("resize", size);
   if (window.visualViewport) window.visualViewport.addEventListener("resize", size);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(size);    /* measure again once the real font is in */
@@ -98,7 +105,7 @@
     document.readyState === "complete" ? 0 : once(window, "load"),
     document.fonts ? Promise.all([document.fonts.load("700 100px Poppins").catch(function () {}), document.fonts.ready]) : 0,
     D.spaceIsReady ? 0 : once(window, "danig:space"),
-    image("assets/ui/danig_logo.svg"), image("assets/ui/earth.png"), image("assets/ui/mode-location.jpg"), image("assets/ui/mode-sweep.jpg"),
+    image("assets/ui/danig_logo.svg"), image("assets/ui/mode-location.jpg"), image("assets/ui/mode-sweep.jpg"),
     new Promise(function (ok) { setTimeout(ok, 1100); })                     /* always show the word for a moment */
   ]);
   var giveUp = new Promise(function (ok) { setTimeout(ok, 9000); });          /* a missing file must never trap the person here */
@@ -107,6 +114,8 @@
   function smooth(u) { return u * u * (3 - 2 * u); }
   function grow() {
     var t0 = performance.now(), DUR = 5600, shown = false;
+    if (curtain.parentNode) curtain.parentNode.removeChild(curtain);
+    if (D.colorGlobe) D.colorGlobe();
     size();                                                                    /* fonts are loaded now: measure again, with the real glyphs */
     svg.classList.add("go");
     var reach = Math.sqrt(W * W + H * H) / 2 + 8;                             /* from the centre to past the farthest corner */
@@ -132,5 +141,12 @@
     }
     requestAnimationFrame(step);
   }
-  Promise.race([ready, giveUp]).then(grow);
+  function reveal() {                                                          /* everything is loaded: black fades away to show the letters, the globe starts to rise */
+    if (D.riseGlobe) D.riseGlobe();
+    curtain.style.transition = "opacity 1.6s ease";
+    void curtain.getBoundingClientRect();
+    curtain.style.opacity = "0";
+    setTimeout(grow, 2400);                                                    /* hold the letters for a moment, then zoom */
+  }
+  Promise.race([ready, giveUp]).then(reveal);
 })();

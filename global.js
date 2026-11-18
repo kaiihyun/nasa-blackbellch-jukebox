@@ -113,6 +113,21 @@
   try { applySize(Math.max(0, Math.min(3, +localStorage.getItem("danigSize") || 0)), true); } catch (e) { applySize(0, true); }
   window.addEventListener("storage", function (e) { if (e.key === "danigSize" && e.newValue !== null) applySize(Math.max(0, Math.min(3, +e.newValue || 0)), true); });
 
+  /* Earth color shift (the landing globe): On = the colors under the mouse drift round the color wheel, Off = the original colors. space.js reads DANIG.hueShift. */
+  D.hueShift = !(UI && window.CONFIG.globe && window.CONFIG.globe.colorShift === false);
+  var hb = [].slice.call(document.querySelectorAll("#hueSeg [role=radio]"));
+  function applyHue(on, quiet) {
+    D.hueShift = on;
+    hb.forEach(function (b, j) { var sel = (j === 0) === on; b.setAttribute("aria-checked", sel); b.tabIndex = sel ? 0 : -1; });
+    try { localStorage.setItem("danigHue", on ? "1" : "0"); } catch (e) {}
+    window.dispatchEvent(new Event("danig:hue"));
+    if (!quiet) say("Earth color shift " + (on ? "on" : "off") + ".");
+  }
+  hb.forEach(function (b, j) { b.addEventListener("click", function () { applyHue(j === 0); }); });
+  D.toggleHue = function () { if (hb.length) applyHue(!D.hueShift); };
+  (function () { var sv = null; try { sv = localStorage.getItem("danigHue"); } catch (e) {} applyHue(sv === null ? D.hueShift : sv !== "0", true); })();
+  window.addEventListener("storage", function (e) { if (e.key === "danigHue" && e.newValue !== null) applyHue(e.newValue !== "0", true); });
+
   (function glass() {                                         /* the "Glass opacity" slider sets --glass-alpha */
     var KEY = "danigGlass", root = document.documentElement, sl = $("glassAmt"), out = $("glassVal");
     function show(a) { if (sl) sl.value = Math.round(a * 100); if (out) out.textContent = Math.round(a * 100) + "%"; }
@@ -137,7 +152,7 @@
   var PAGES = MAIN ? [
     ["Menu", [[both("prev", "next"), "Previous or next dataset"], [kbs(L("start")), "Start, then open the player"],
       [kbs(L("modeLocation")) + " " + kbs(L("modeSweep")), "Location mark or Sweep"], [kbs(L("uploadVideo")) + " " + kbs(L("uploadLegend")), "Upload card: video or legend"],
-      [kbs(L("about")), "About"], [kbs(L("settings")), "Setting and shortcuts"], [kbs(L("textSize")), "Change text size"], [kbs(L("exit")), "Back one screen"]]],
+      [kbs(L("about")), "About"], [kbs(L("settings")), "Setting and shortcuts"], [kbs(L("textSize")), "Change text size"], [kbs(L("colorShift")), "Earth color shift on or off"], [kbs(L("exit")), "Back one screen"]]],
     ["Player", [[kbs(L("play")), "Play or pause"], [kbs(L("silence")), "Silence now (pause)"], [kbs(L("seekBack")) + " " + kbs(L("seekForward")), "Seek back or forward 5 seconds"],
       [kbs("&larr;", "&rarr;", "&uarr;", "&darr;"), "Move the listening spot"], [kbs(L("nextPlace")) + " / " + kbs("Shift") + "+" + kbs(L("nextPlace")), "Next or previous named place"],
       [kbs(L("restart")), "Restart from the beginning"], [kbs(L("soundKey")), "Play the sound key (pauses playback)"], [kbs(L("describe")), "Describe this moment"]]],
@@ -378,6 +393,7 @@
       if (e.target.id === "glassAmt" && /^(Arrow|Home$|End$|Page)/.test(k)) { e.stopImmediatePropagation(); return; }
       if (D.is(e, "settings")) { e.preventDefault(); (about.open ? about : sets).close(); }
       else if (D.is(e, "textSize") && UI.showTextSize !== false && !(e.ctrlKey || e.metaKey || e.altKey)) applySize((si + 1) % SIZES.length);
+      else if (D.is(e, "colorShift") && hb.length && !(e.ctrlKey || e.metaKey || e.altKey)) D.toggleHue();
       else if (sets.open && (k === "ArrowLeft" || k === "ArrowRight")) { e.preventDefault(); $(k === "ArrowRight" ? "kNext" : "kBack").click(); }
       e.stopImmediatePropagation(); return;
     }
@@ -392,6 +408,7 @@
     if (D.is(e, "settings")) { e.preventDefault(); openDlg(sets); return; }
     if (D.is(e, "about")) { e.preventDefault(); openDlg(about); return; }
     if (D.is(e, "textSize") && UI.showTextSize !== false) { applySize((si + 1) % SIZES.length); return; }
+    if (D.is(e, "colorShift") && hb.length) { D.toggleHue(); return; }
 
     var cl = body.classList, playing = cl.contains("playing");
     if (MAIN && cl.contains("home")) {                          /* landing: only Start is live */
@@ -472,7 +489,7 @@
       swap(function () {
         body.classList.remove("modes"); body.classList.add("home");
         $("homeStart").focus();
-        say("DANIG. The world, through sound. Press " + L("start") + " to start.");
+        say("DANIG. The world, through sound. Press " + L("start") + "/Space to start.");
       });
     };
     function goModes() {                                            /* carousel -> mode picker */
@@ -509,7 +526,7 @@
     $("next").addEventListener("click", function () { go(1); });
     ["prev", "next"].forEach(function (id) { $(id).addEventListener("mousedown", function (e) { e.preventDefault(); }); });
     $("homeStart").focus();
-    say("DANIG. The world, through sound. Press " + L("start") + " to start.");
+    say("DANIG. The world, through sound. Press " + L("start") + "/Space to start.");
   })();
 
   /* ---------- 4d. Main page: coverflow (both modes share this) ----------

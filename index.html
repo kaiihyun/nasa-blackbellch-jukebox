@@ -21,7 +21,19 @@
     <a class="skip" href="#main">Skip to main content</a>
     <header class="bar"><button id="exitBtn" type="button" class="btn sm" data-act="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit</button><img class="logo" src="assets/ui/danig_logo.svg" alt="DANIG"><div class="bar-end"><button id="aboutBtn" type="button" class="btn sm" data-act="about">About</button><button id="helpBtn" type="button" class="btn sm" data-act="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.5 1 2-3.5zM12 8.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z"/></svg> Setting</button></div></header>
 <div class="views">
-      <section id="landing" class="landing" aria-label="Welcome"><img class="logo" src="assets/ui/danig_logo.svg"  alt="Danig Logo"/><h1>DANIG</h1><p class="tag">The world, through sound.</p><button id="homeStart" type="button" class="btn pri big" data-act="start">Start</button></section>
+      <section id="landing" class="landing" aria-label="Welcome">
+        <div id="disc" class="disc" aria-hidden="true"></div>
+        <h1>DANIG</h1>
+        <p class="tag">The world, through sound.</p>
+        <div class="mp-time" aria-hidden="true"><span>00:00</span><span class="mp-track"><i></i></span><span>06:12</span></div>
+        <div class="mp-ctl">
+          <span class="mp-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 3h5v5"/><path d="M4 20L21 3"/><path d="M21 16v5h-5"/><path d="M15 15l6 6"/><path d="M4 4l5 5"/></svg></span>
+          <span class="mp-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 5.5v13L8.5 12z"/><path d="M5.5 5.5v13"/></svg></span>
+          <button id="homeStart" type="button" class="mp-btn mp-play" data-act="start" data-nokbd aria-label="Start"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg></button>
+          <span class="mp-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 5.5v13L15.5 12z"/><path d="M18.5 5.5v13"/></svg></span>
+          <span class="mp-btn" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14"/><path d="M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/></svg></span>
+        </div>
+      </section>
       <section id="modes" class="modes-screen" aria-label="Choose a mode">
         <h2 class="mtitle">How do you want to listen?</h2>
         <div class="modegrid">
@@ -221,6 +233,10 @@
       </div>
       <h3 id="glL">Glass opacity</h3>
       <div class="rangerow"><input type="range" id="glassAmt" min="0" max="80" step="2" value="26" aria-labelledby="glL" /><b id="glassVal">26%</b></div>
+      <h3 id="csL">Earth color shift <kbd class="kb" data-key="colorShift" aria-hidden="true"></kbd></h3>
+      <div id="hueSeg" class="seg" role="radiogroup" aria-labelledby="csL">
+        <button type="button" role="radio" aria-checked="true">On</button><button type="button" role="radio" aria-checked="false">Off</button>
+      </div>
       <h2 class="sub">Keyboard shortcuts</h2>
       <div id="kWrap" class="kwrap" aria-live="polite"><table><caption class="sr">Shortcuts</caption><tbody id="kRows"></tbody></table></div>
       <div class="pager"><button id="kBack" type="button" class="btn pri pill karrow" aria-label="Previous page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg></button><span id="kPage" class="mono"></span><button id="kNext" type="button" class="btn pri pill karrow" aria-label="Next page of shortcuts"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg></button></div>

@@ -1502,7 +1502,7 @@
         ? p.cols
         : p.theme && p.theme.colors,
     );
-    say(
+    if (!/\bhome\b/.test(document.body.className)) say(   // on the landing page global.js says "DANIG. The world, through sound..."
       p.name +
         ". " +
         (i === ITEMS.length - 1 ? "Click the two boxes to add your video and legend picture. Press " + keyWord("uploadVideo") + " for the video, " + keyWord("uploadLegend") + " for the legend."
