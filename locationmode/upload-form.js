@@ -34,12 +34,14 @@
   showScene();
   /* About sheet: the same instruments and scenes as the upload form, so the lists never drift apart */
   [].slice.call(upI.options).forEach(function (o) {
+    if (/drip|ice\s*chime/i.test(o.textContent)) return;
     var li = document.createElement("li"), t = document.createElement("span");
     li.innerHTML = "<svg " + ST + ">" + INS.outline(o.value) + "</svg>";
     t.textContent = o.textContent; li.appendChild(t); $("aboutInst").appendChild(li);
   });
   [].slice.call(upS.options).forEach(function (o) {
     if (o.value === "none") return;
+    if (/drip|ice\s*chime/i.test(o.textContent)) return;
     var li = document.createElement("li"); li.textContent = o.textContent; $("aboutScenes").appendChild(li);
   });
   $("sceneCycle").addEventListener("click", function () {

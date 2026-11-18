@@ -71,7 +71,7 @@ DANIG.keys = {
 /* ---------- 3. Switches (developers only: nothing on screen turns these on or off) ---------- */
 CONFIG.ui = {
   showInstrumentStrip: true,   /* laptop only: one button per instrument between the video and the sidebar (Location mark player) */
-  showMixer: true,             /* the "Playing now" list with one spectrum and a mute button per sound layer */
+  showMixer: false,             /* the "Playing now" list with one spectrum and a mute button per sound layer */
   showScenePicker: true,       /* the background texture button and its key */
   showShortcutBadges: true,    /* the key shown to the right of each button's text (screen readers always hear it) */
   showTextSize: true,          /* the "Text size" control in Settings */
@@ -100,8 +100,8 @@ CONFIG.globe = {
   instrument: "accordion",
   lowMidi: 55,         /* lowest note; the top of the globe is three octaves higher */
   volume: 0.3,
-  dimDelay: 4,          /* seconds after the globe starts rising before it begins to blur and go grey */
-  dimTime: 8,           /* seconds the blur and grey take to fully arrive */
+  dimDelay: 0,          /* seconds after the globe starts rising before it begins to blur and go grey */
+  dimTime: 2,           /* seconds the blur and grey take to fully arrive */
   noteGap: 110          /* ms between notes when you glide over the globe (lower = more flowing) */
   /* texture: "assets/ui/your-map.jpg"   <- optional: your own equirectangular map instead of the CDN one */
 };

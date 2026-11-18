@@ -1240,7 +1240,6 @@
     g.beginPath();
     g.arc(px, py, 26, 0, 7);
     g.stroke();
-    label(g, S.spot.name, cv.width / 2, 24, "center");
     markVideo();
   }
 
@@ -1614,9 +1613,7 @@
           : "Paused. Press Play to listen.";
       say(
         msg ||
-          "Ready and paused." +
-            (S.target === "spot" ? " Listening to " + S.spot.name + "." : "") +
-            " Press Play to listen." +
+          "Ready. Press " + keyWord("play") + " to play. Click on the video to pick a place, or move it with the arrow keys." +
             (S.warn ? " " + S.warn : ""),
       );
     }
@@ -1936,8 +1933,8 @@
   /* Speed is one button that steps to the next speed, then wraps round. The select stays as the value holder. */
   function rateRefresh() {
     var o = $("rate").selectedOptions[0];
-    $("rateName").textContent = o.text;
-    $("rateBtn").setAttribute("aria-label", "Speed: " + o.text + ". Press to change, or press " + keyWord("speed") + ".");
+    $("rateName").textContent = "x" + parseFloat(o.value).toFixed(1);
+    $("rateBtn").setAttribute("aria-label", "Speed: " + o.text + ", x" + parseFloat(o.value).toFixed(1) + ". Press to change, or press " + keyWord("speed") + ".");
   }
   window.spotStepSpeed = function (d) {
     var s = $("rate"), i = s.selectedIndex + d;
@@ -2123,7 +2120,7 @@
       pickAt(e, this, true);
     });
     /* Sliders are for the mouse and touch. Let go of focus afterwards so keys never change them by accident. */
-    ["seek", "volume"].forEach(function (id) {
+    ["seek"].forEach(function (id) {
       $(id).addEventListener("change", function () {
         this.blur();
       });
