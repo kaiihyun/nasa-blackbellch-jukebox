@@ -1474,12 +1474,9 @@
     im.src = u.replace(/\.[^./?]+$/, ".jpg");
   }
   function showItem(i, now) {
-    var p = ITEMS[i],
-      b = $("top");
-    var n0 = ITEMS.length, df = (i - S.idx + n0) % n0;   // which way the carousel moves, so the slide goes the right way round the loop
-    b.classList.toggle("dir-prev", df > n0 / 2);
-    b.classList.toggle("dir-next", df !== 0 && df <= n0 / 2);
+    var p = ITEMS[i];
     S.idx = i;
+    if (DK.coverflow) DK.coverflow.go(i, !!now);   // global.js: the 3D coverflow moves, and the centre card arrives from the side (the only carousel animation)
     $("preset").value = i;
     document.body.classList.toggle("upload", i === ITEMS.length - 1);
     closeForm(true);
@@ -1498,18 +1495,8 @@
       $("pIdx").textContent = i + 1 + " / " + ITEMS.length;
       paintShot(p, i);
       $("start").disabled = i === ITEMS.length - 1 && !swReady();   // the upload card plays only when both boxes are filled
-      paintGhosts(i);
-      b.classList.add("pre");            // jump to the "arriving" pose without animating...
-      b.classList.remove("swap");
-      void b.offsetWidth;                // ...then let it glide, unblur and fade in
-      b.classList.remove("pre");
     }
-    if (now) text();
-    else {
-      b.classList.add("swap");
-      clearTimeout(S.swapT);
-      S.swapT = setTimeout(text, 340);   // matches --dur-out in glass.css
-    }
+    text();
     setTheme(
       p.cols && !(p.theme && p.theme.fixed)
         ? p.cols
@@ -1523,25 +1510,6 @@
         " Use the left and right arrow keys to change.",
     );
     layoutFlow();
-  }
-  /* ===== Neighbour cards: one blurred picture on each side of the centre card, no text. The carousel loops. ===== */
-  function ghostPaint(el, p, idx) {
-    var c = (p.cols && !(p.theme && p.theme.fixed)) ? p.cols : (p.theme && p.theme.colors) || ["#5aa9ee", "#6366f1", "#a855f7"];
-    el.style.backgroundImage = "linear-gradient(135deg," + c.join(",") + ")";
-    el.dataset.k = idx;
-    var u = idx === ITEMS.length - 1 ? "" : (p.thumb || p.videoUrl);
-    if (!u) return;
-    function put(src) { if (+el.dataset.k === idx && ITEMS[idx] === p) el.style.backgroundImage = 'url("' + src + '")'; }
-    var im = new Image();
-    im.onload = function () { put(im.src); };
-    im.onerror = function () { grabShot(u).then(put).catch(function () {}); };
-    im.src = u.replace(/\.[^./?]+$/, ".jpg");
-  }
-  function paintGhosts(i) {
-    var n = ITEMS.length, a = (i - 1 + n) % n, b = (i + 1) % n;
-    $("ghostL").hidden = $("ghostR").hidden = n < 2;
-    ghostPaint($("ghostL"), ITEMS[a], a);
-    ghostPaint($("ghostR"), ITEMS[b], b);
   }
   /* Switch the carousel to a mode: "location" (DANIG presets + upload) or "sweep" (Earth Jukebox tracks + its upload). */
   function setMode(m) {
@@ -1562,6 +1530,11 @@
     document.body.classList.toggle("m-sweep", sweep);
     document.body.classList.toggle("m-location", !sweep);
     buildFlow();
+    if (DK.coverflow) DK.coverflow.build(ITEMS.length, {   // global.js draws the 3D cards for whichever mode is on
+      colors: function (i) { return (ITEMS[i].theme && ITEMS[i].theme.colors) || null; },
+      thumb: function (i) { return i === ITEMS.length - 1 ? "" : (ITEMS[i].thumb || ITEMS[i].videoUrl); },
+      pick: function (i) { if (S.view === "menu" && !S.busy && i !== S.idx) showItem(i); }
+    });
     showItem(0, true);
   }
   window.spotSetMode = setMode;
@@ -2063,8 +2036,6 @@
     if (SHOW_MIXER) mixLoop();
     buildPickers();
     specLoop();
-    $("ghostL").addEventListener("click", function () { $("prev").click(); });
-    $("ghostR").addEventListener("click", function () { $("next").click(); });
     [["slotVideo", "swVideo", "video"], ["slotLegend", "swLegend", "legend"]].forEach(function (a) {
       $(a[0]).addEventListener("click", function () { $(a[1]).click(); });
       $(a[1]).addEventListener("change", function () {

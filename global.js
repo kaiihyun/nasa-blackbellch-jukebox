@@ -3,7 +3,7 @@
      1  Keys          reads DANIG.keys (globalconfig.js): key labels, the badge on each button, what screen readers hear
      2  Setting       About and Setting sheets, text size, glass opacity, the shortcut list
      3  Keyboard      one handler: every button that has data-act="name" is clicked by its key
-     4  Main page     landing, mode picker, Exit, the loading screen, the Sweep player (index.html only)
+     4  Main page     landing, mode picker, Exit, the loading screen, the Sweep player, the coverflow (index.html only)
      5  Fit           shrinks a sheet or form that would otherwise be cut off
    A button gets its shortcut by carrying data-act="name" in the HTML. Nothing else is needed.
    ============================================================ */
@@ -510,6 +510,111 @@
     ["prev", "next"].forEach(function (id) { $(id).addEventListener("mousedown", function (e) { e.preventDefault(); }); });
     $("homeStart").focus();
     say("DANIG. The world, through sound. Press " + L("start") + " to start.");
+  })();
+
+  /* ---------- 4d. Main page: coverflow (both modes share this) ----------
+     Every card has a POSE by its distance d from the centre (0 = centre, -1 / +1 = first left / right, 2 = furthest shown).
+     A pose is a place, a size, a tilt and a darkness. Moving to the next dataset just moves each card to its new pose:
+       - the card that was in the centre shrinks to the size of a side card and slides to its side (a snapshot of the card, so its text shrinks with it)
+       - the card that was at the side grows into the centre (the real centre card, #blurb)
+       - the others slide one place along
+     The carousel code (locationmode/engine.js) only calls:
+       DANIG.coverflow.build(count, opts)  when the list of cards changes (a mode was chosen)
+       DANIG.coverflow.go(index, instant)  when a card becomes the centre card (instant = no animation)
+     opts = { colors(i) -> [c1,c2,c3], thumb(i) -> picture or video url ("" = none), pick(i) -> called when a side card is clicked }
+     Look: styles.css section 11. Feel: the numbers in T. Index 0 is the centre, 1 the first card each side, 2 the furthest, 3 the unseen ones beyond. */
+  if (MAIN) (function coverflow() {
+    var T = {
+      x:     [0, 76, 98, 110],       /* distance from the centre, in % of a card's own width */
+      scale: [1, 0.5, 0.4, 0.34],    /* size: the first cards at each side are half the centre card, the furthest 40% */
+      tilt:  [0, 30, 42, 42],        /* degrees turned towards the centre */
+      dim:   [1, 0.62, 0.4, 0.3],    /* brightness: first left and right a bit dark, the furthest darker still */
+      depth: 130,                    /* px behind the centre card, per step */
+      near: 2                        /* how many cards each side are shown */
+    };
+    var EASE = "cubic-bezier(.22,1,.36,1)", DUR = 700, P = "perspective(1100px) ";
+    var cards = [], opts = {}, cur = -1;
+    function box() { return $("cflow"); }
+    function squeeze() { return window.innerWidth <= 640 ? 0.62 : 1; }    /* phones: the side cards tuck closer so they stay on screen */
+    function slot(d) { return Math.min(3, Math.abs(d)); }
+    function pose(d) {
+      var a = slot(d), s = d < 0 ? -1 : 1;
+      return "translate3d(" + s * T.x[a] * squeeze() + "%,0," + (-a * T.depth) + "px) rotateY(" + (-s * T.tilt[a]) + "deg) scale(" + T.scale[a] + ")";
+    }
+    function shade(d) { return "brightness(" + T.dim[slot(d)] + ")"; }
+    function around(d, n) { var h = n / 2; if (d > h) d -= n; else if (d < -h) d += n; return d; }   /* the shortest way round the loop */
+    function reduced() { return !!(window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches); }
+
+    function paint(el, i) {                                  /* the picture loads only when a card comes near the centre */
+      if (el.dataset.painted) return;
+      el.dataset.painted = "1";
+      var u = opts.thumb ? opts.thumb(i) : ""; if (!u) return;
+      function put(src) { if (cards[i] === el) el.style.backgroundImage = 'url("' + src + '")'; }
+      var im = new Image();
+      im.onload = function () { put(im.src); };
+      im.onerror = function () { if (window.spotShot) window.spotShot(u).then(put).catch(function () {}); };
+      im.src = u.replace(/\.[^./?]+$/, ".jpg");              /* saved frame next to the video: precip.mp4 -> precip.jpg */
+    }
+    function build(n, o) {
+      var b = box(); if (!b) return;
+      opts = o || {}; b.innerHTML = ""; cards = []; cur = -1;
+      for (var i = 0; i < n; i++) (function (i) {
+        var el = document.createElement("div"), c = (opts.colors && opts.colors(i)) || ["#5aa9ee", "#6366f1", "#a855f7"];
+        el.className = "cfc";
+        el.style.backgroundImage = "linear-gradient(135deg," + c.join(",") + ")";
+        el.addEventListener("click", function () { if (opts.pick) opts.pick(i); });
+        b.appendChild(el); cards.push(el);
+      })(i);
+    }
+    /* A copy of the centre card as it is right now (title, text, picture), standing exactly where the real one stands. */
+    function snapshot() {
+      var real = $("blurb"), b = box(); if (!real || !b) return null;
+      var w = document.createElement("div"), c = real.cloneNode(true);
+      c.removeAttribute("id"); c.inert = true;
+      [].forEach.call(c.querySelectorAll("[id]"), function (x) { x.removeAttribute("id"); });
+      w.className = "cfc cl"; w.setAttribute("aria-hidden", "true"); w.appendChild(c);
+      w.style.transition = "none"; w.style.transform = pose(0); w.style.filter = "none"; w.style.opacity = "1"; w.style.zIndex = "9";
+      b.appendChild(w); void w.offsetWidth;
+      return w;
+    }
+    /* The real centre card grows from the side place the new card was in. */
+    function grow(from) {
+      var el = $("blurb"); if (!el || !el.animate) return;
+      el.animate([
+        { opacity: 0, transform: P + pose(from), filter: shade(from), offset: 0 },
+        { opacity: 1, offset: 0.3 },
+        { opacity: 1, transform: P + "translate3d(0,0,0) rotateY(0deg) scale(1)", filter: "brightness(1)", offset: 1 }
+      ], { duration: DUR, easing: EASE });
+    }
+    function go(i, instant) {
+      var n = cards.length; if (!n) return;
+      var d0 = cur < 0 ? 0 : around(i - cur, n),
+          move = !instant && cur >= 0 && d0 !== 0 && !reduced(),
+          ghost = move ? snapshot() : null;
+      var old = cur;
+      if (move) grow(d0);
+      cur = i;
+      cards.forEach(function (el, k) {
+        var d = around(k - i, n), a = Math.abs(d),
+            prev = el.dataset.d === undefined ? d : +el.dataset.d,
+            jump = el.dataset.d === undefined || Math.abs(d - prev) > 2.5;   /* first layout, or wrapping round the loop: no sweep across the deck */
+        el.dataset.d = d;
+        if (jump) el.style.transition = "none";
+        el.style.transform = pose(d);
+        el.style.filter = shade(d);
+        el.style.zIndex = 5 - Math.min(3, a);
+        el.classList.toggle("cur", d === 0);
+        el.classList.toggle("show", a >= 1 && a <= T.near);
+        if (jump) { void el.offsetWidth; el.style.transition = ""; }
+        if (a <= T.near) paint(el, k);
+        if (ghost && k === old) {                        /* the card that was in the centre: its snapshot shrinks to where this card now stands */
+          ghost.style.transition = "transform " + DUR + "ms " + EASE + ",filter " + DUR + "ms " + EASE + ",opacity 400ms ease 300ms";
+          ghost.style.transform = pose(d); ghost.style.filter = shade(d); ghost.style.opacity = "0";
+          setTimeout(function () { if (ghost.parentNode) ghost.parentNode.removeChild(ghost); }, DUR + 150);
+        }
+      });
+    }
+    D.coverflow = { build: build, go: go };
   })();
 
   /* ---------- 5. Fit: nothing on this site scrolls, so a sheet or form that is too big is scaled down ---------- */
