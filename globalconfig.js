@@ -100,7 +100,10 @@ CONFIG.globe = {
   hoverSound: true,    /* the instrument plays under the mouse (starts after the first click or key press) */
   instrument: "accordion",
   lowMidi: 55,         /* lowest note; the top of the globe is three octaves higher */
-  volume: 0.3
+  volume: 0.3,
+  dimDelay: 4,          /* seconds after the globe starts rising before it begins to blur and go grey */
+  dimTime: 2,           /* seconds the blur and grey take to fully arrive */
+  noteGap: 110          /* ms between notes when you glide over the globe (lower = more flowing) */
   /* texture: "assets/ui/your-map.jpg"   <- optional: your own equirectangular map instead of the CDN one */
 };
 

@@ -110,11 +110,14 @@
     hoverSound: true,
     instrument: "accordion",
     lowMidi: 55,         /* lowest note under the mouse (the top of the globe is three octaves higher) */
-    volume: 0.8
+    volume: 0.8,
+    dimDelay: 4,         /* seconds after the globe rises before it starts to blur and go grey */
+    dimTime: 8,          /* seconds the blur and grey take to arrive */
+    noteGap: 110         /* ms between notes while gliding */
   }, UC = CF.globe || {}, k;
   for (k in UC) G[k] = UC[k];
 
-  var done = false, colored = false, rose = false, mounts = 0, leaving = 0,
+  var done = false, colored = false, rose = false, mounts = 0, leaving = 0, dimT = 0,
       g = null, wrap = null, halo = null, sspin = null, rev = null, rc = null, cur = { lat: G.lat, lng: G.lng };
 
   function ready() {
@@ -125,9 +128,15 @@
   }
   setTimeout(ready, 6000);
 
+  function startDim(w) {                          /* clear colour first, then blur + grey after dimDelay seconds */
+    if (!w || w.dataset.dim) return;
+    w.dataset.dim = "1";
+    var go = function () { if (w === wrap) w.classList.add("dim"); };
+    if (reduce) go(); else dimT = setTimeout(go, Math.max(0, G.dimDelay) * 1000);
+  }
   D.riseGlobe = function () {
     rose = true;
-    if (wrap && !wrap.classList.contains("pop") && !wrap.classList.contains("leave")) wrap.classList.add("rise");
+    if (wrap && !wrap.classList.contains("pop") && !wrap.classList.contains("leave")) { wrap.classList.add("rise"); startDim(wrap); }
   };
   D.colorGlobe = function () {                    /* lights the glow around the disc. The globe itself stays grey until hovered. */
     colored = true;
@@ -189,9 +198,14 @@
     } };
     return au;
   }
-  function unlock() { var a = audio(); if (a && a.c.state !== "running") a.c.resume(); }
-  window.addEventListener("pointerdown", unlock, true);
-  window.addEventListener("keydown", unlock, true);
+  function unlock() {
+    var a = audio(); if (!a || a.c.state === "running") return;
+    a.c.resume().then(function () {               /* the first click, tap or key sounds the note under the pointer right away */
+      var l = Hv.last;
+      if (l && performance.now() - l.t < 1500) { Hv.idx = -1; hoverNote(l.vx, l.vy, l.Rg); }
+    }).catch(function () {});
+  }
+  ["pointerdown", "pointerup", "touchend", "mousedown", "click", "keydown"].forEach(function (t) { window.addEventListener(t, unlock, true); });
 
   var Hv = { tr: 0, rr: 0, rx: 0, ry: 0, hue: 0, raf: 0, t: 0, lastBars: 0, idx: -1, nt: 0, shown: false, pts: 0, arr: null, h: null };
   window.addEventListener("danig:hue", function () { if (D.hueShift === false && !Hv.tr) Hv.hue = 0; });
@@ -203,7 +217,7 @@
     if (a.c.state !== "running") return;
     var now = performance.now(), n = Math.max(0, Math.min(1, (Rg - vy) / (2 * Rg))),
         sc = CF.scale || [0, 2, 4, 7, 9], len = sc.length * 3, idx = Math.round(n * (len - 1));
-    if (idx === Hv.idx || now - Hv.nt < 130) return;
+    if (idx === Hv.idx || now - Hv.nt < G.noteGap) return;
     var inst = window.LOC && LOC.instruments && LOC.instruments.get(G.instrument);
     if (!inst) return;
     Hv.idx = idx; Hv.nt = now;
@@ -224,12 +238,16 @@
     Hv.rx = (vx * co + vy * si) / sc + Dm / 2;
     Hv.ry = (-vx * si + vy * co) / sc + Dm / 2;
     Hv.tr = G.radius * Sg;
+    Hv.last = { vx: vx, vy: vy, Rg: Rg, t: performance.now() };
     kick(); hoverNote(vx, vy, Rg);
   }
   doc.addEventListener("pointermove", onPtr, { passive: true });
   doc.addEventListener("pointerdown", onPtr, { passive: true });
   doc.documentElement.addEventListener("pointerleave", function () { Hv.tr = 0; Hv.idx = -1; kick(); });
   window.addEventListener("blur", function () { Hv.tr = 0; Hv.idx = -1; kick(); });
+  function endTouch(e) { if (e.pointerType !== "mouse") { Hv.tr = 0; Hv.idx = -1; kick(); } }   /* finger lifted: the colour circle goes */
+  doc.addEventListener("pointerup", endTouch, { passive: true });
+  doc.addEventListener("pointercancel", endTouch, { passive: true });
 
   function kick() { if (!Hv.raf) Hv.raf = requestAnimationFrame(loop); }
   function clearBars() { if (Hv.pts && g) { try { g.pointsData([]); } catch (e) {} } Hv.pts = 0; }
@@ -296,6 +314,7 @@
     if (again) w.classList.add("pop");
     if (colored || again) w.classList.add("color");
     w.style.setProperty("--gblur", G.blur + "px");
+    w.style.setProperty("--gdimtime", Math.max(0, G.dimTime) + "s");
     w.style.setProperty("--gspin", (G.spin > 0 ? G.spin : 0) + "s");
     if (!(G.spin > 0)) spin.style.animation = "none";
     h.style.setProperty("--glow", G.glowColor);
@@ -316,7 +335,7 @@
       .onGlobeReady(function () {
         if (wrap !== w) return;
         w.classList.add("on");
-        if (again || rose) w.classList.add("rise");
+        if (again || rose) { w.classList.add("rise"); startDim(w); }
         ready();
       });
     g = gl;
@@ -330,6 +349,7 @@
   }
 
   function destroy() {
+    clearTimeout(dimT);
     if (leaving) { clearTimeout(leaving); leaving = 0; }
     var gl = g, w = wrap, r = null;
     g = null; wrap = null; halo = null; sspin = null; rev = null; rc = null;
