@@ -26,5 +26,7 @@ EJ.PRESETS = [
     labels: ['Hum', 'Ticks'],
     pad: [0.3, 1, 'sqrt'], drops: [0.1, 1, 'pow1.5'],
     voice: { scale: 'minor', chime: 'drip', base: 57, dropGain: 0.9, pad: 'sawtooth', cutoff: [120, 2200], detune: [6, 40], tempo: [60, 132], tempoFrom: 'heat', reverb: 0.3, hiss: 0.05 },
-    graph: [0.2, -1.4, -2.2, -0.6] }
+    graph: [0.2, -1.4, -2.2, -0.6] },
+
+    
 ];

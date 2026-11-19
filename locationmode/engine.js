@@ -1756,7 +1756,7 @@
   function defaultInstr() {
     var sp = isUpload() ? S.legends[0] && S.legends[0].spec : (ITEMS[S.idx].legends || [])[0];
     var k = (sp && (sp.timbre || C.timbres[sp.type])) || C.timbres["default"];
-    return k === "lyre" ? "xylophone" : k;
+    return k === "lyre" ? "xylophone": k;
   }
   function currentInstr() {
     return S.instr || defaultInstr();
