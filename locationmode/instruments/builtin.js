@@ -94,8 +94,8 @@
   },
   "ice": {
     "name": "Ice chime",
-    "spoken": "ice chime",
-    "desc": "A clear, glassy chime with a high shimmer.",
+    "spoken": "ice ",
+    "desc": "A clear, glassy  with a high shimmer.",
     "gap": 0.5,
     "icon": "<path d=\"M12 2l8 10-8 10-8-10z\"/>",
     "outline": "<path d=\"M12 3l6 9-6 9-6-9z\"/><path d=\"M6 12h12\"/>",
