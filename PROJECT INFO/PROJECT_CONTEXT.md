@@ -14,10 +14,12 @@
 ```
 index.html          Main page: landing, mode picker, carousel, Location player, About/Settings dialogs
 styles.css          Only stylesheet (tokens, glass look, screens, coverflow, loader); shared by both modes
-globalconfig.js     DANIG.dirs (asset paths), DANIG.keys (all shortcuts), CONFIG.ui switches, CONFIG.globe, CONFIG.stars, CONFIG.sweepUpload
+globalconfig.js     DANIG.dirs (asset paths), DANIG.keys (all shortcuts), CONFIG.ui switches, CONFIG.globe, CONFIG.stars, 
+                    CONFIG.sweepUpload,CONFIG.sweepUpload
 global.js           Shared logic: key badges, one keyboard dispatcher, About/Settings sheets, text size, glass opacity,
                     shortcut pager, loader, Sweep iframe bridge, landing/mode navigation, coverflow, dialog fit-to-screen
-intro.js            SVG-mask "DANIG" zoom intro; fills in accepted formats on the Upload card
+intro.js            Tap-to-begin intro: Earth fades in, colour spectrum ring fills with sparkle notes, bursts when loaded 
+                    (CONFIG.intro); fills in accepted formats on the Upload card
 space.js            Starfield canvas and the 3D landing-page globe (hover color circle, 3D bars, hover notes)
 server.py           Local static server plus /proxy endpoint
 locationmode/      config.js (datasets, places, gazetteer, analysis), engine.js, upload-form.js, plugins.js,
@@ -75,7 +77,8 @@ None. No accounts, sessions or secrets in the code.
 ## Constraints and notes
 - Must be served over HTTP; `file://` fails because browsers block pixel reads from video.
 - Cross-origin videos need CORS headers or the proxy, otherwise canvas `getImageData` is tainted.
-- Audio needs a user gesture; the code primes/resumes audio on key press or click.
+- Audio needs a user gesture; the code primes/resumes audio on key press or click.  The intro adds a "Tap to begin" gate for exactly this; it reuses space.js's AudioContext (`DANIG.audio()`).
+- Intro depends on `DANIG.riseGlobe / colorGlobe / clearGlobe / globeGeometry / audio` from space.js, which global.js may load after intro.js runs; intro.js waits for the `danig:space` event. The spectrum canvas is inserted into `#space` before `#globe` so the Earth covers its inner edge.
 - Location mode accepts MP4 only; Sweep also accepts PNG/JPG. Legends: PNG, JPG, WEBP or GIF.
 - Pages do not scroll by design; dialogs and forms scale to fit. Reduced motion is respected.
 - Accessibility is core: configurable key for every action, live regions, adjustable text size and glass opacity.
@@ -85,3 +88,21 @@ None. No accounts, sessions or secrets in the code.
   - `engine.js` references `scaleBtn`, which is absent from `index.html`; scene layer `smoke` is mapped in `byType` but not defined.
   - README mentions `locationmode/templates/` and `tools/make-plugins.py`, which were not provided.
 - `globe.gl` is loaded from an unpinned jsDelivr path. No dependency or lock files exist.
+
+
+## CSS Three Files
+- styles.css 
+    1  Tokens        every color, size and spacing value. Change one here and both modes follow.
+     2  Base          reset, background, stars
+     3  Glass         the one liquid-glass look every panel shares
+     4  Components    buttons, fields, key badges, top bar, sheets
+- styles-play.css
+    5  Screens       landing, mode picker, carousel, upload card (shared by both modes)
+     6  Location      upload form and player   (body.page-location)
+     7  Sweep         playlist extras and player (body.page-sweep)
+     8  Loader        loading screen
+     instruments and stuff
+- styles-out.css
+10  Sky, intro, smooth screens, upload card text
+    11  Coverflow: 3D cards beside the centre card (both modes, built by global.js)
+      opening, blur in out, titleflow, gatepulse, NASA svs, shortcut list of , about and settings

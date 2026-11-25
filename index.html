@@ -1,22 +1,18 @@
-<!doctype html> <html lang="en">
+<!doctype html> 
+<html lang="en">
   <head>
      <link rel="icon" type="image/svg+xml" href="assets/ui/favicon.ico">
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
     <title>DANIG: the world, through sound</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" /><link rel="stylesheet" href="styles.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" /><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin /><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="styles-outer.css" />
+    <link rel="stylesheet" href="styles-play.css" />
   </head>
+
   <body class="home page-location intro">
-    <svg id="intro" class="veilsvg" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
-      <defs><mask id="introMask" maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
-        <rect x="0" y="0" width="100%" height="100%" fill="#fff"/>
-        <g id="introScale"><text id="introText" x="50%" y="50%" font-size="160" text-anchor="middle" dominant-baseline="central" fill="#000">DANIG</text></g>
-      </mask></defs>
-      <rect x="0" y="0" width="100%" height="100%" fill="#000" mask="url(#introMask)"/>
-    </svg>
+     <div id="introVeil" class="introveil"></div>
     <a class="skip" href="#main">Skip to main content</a>
     <header class="bar"><button id="exitBtn" type="button" class="btn sm" data-act="exit"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="10" fill="currentColor"/><path d="M11.5 5.5L7 10l4.5 4.5" stroke="#0a1220" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg> Exit</button><img class="logo" src="assets/ui/danig_logo.svg" alt="DANIG"><div class="bar-end"><button id="aboutBtn" type="button" class="btn sm" data-act="about">About</button><button id="helpBtn" type="button" class="btn sm" data-act="settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" fill-rule="evenodd" aria-hidden="true"><path d="M19.4 13a7.5 7.5 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.4 7.4 0 0 0-1.7-1L15 3.3h-4l-.4 2.6a7.4 7.4 0 0 0-1.7 1l-2.5-1-2 3.5L6.6 11a7.5 7.5 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.8 1.7 1l.4 2.6h4l.4-2.6c.6-.2 1.2-.6 1.7-1l2.5 1 2-3.5zM12 8.8a3.2 3.2 0 1 0 0 6.4 3.2 3.2 0 0 0 0-6.4z"/></svg> Settings</button><a id="svsCard" class="svs glass" href="https://svs.gsfc.nasa.gov/5690/" target="_blank" rel="noopener noreferrer"><span class="svs-img" aria-hidden="true"></span><span class="svs-t"><strong>NASA SVS</strong>Get access to NASA&rsquo;s open source data visualizations<span class="sr"> (opens in a new tab)</span></span></a></div></header>
 <div class="views">

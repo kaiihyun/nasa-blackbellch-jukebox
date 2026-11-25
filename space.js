@@ -131,6 +131,13 @@
   function startDim(w) {                          /* clear colour first, then blur + grey after dimDelay seconds */
     if (!w || w.dataset.dim) return;
     w.dataset.dim = "1";
+
+    var I = CF.intro || {};
+   if (body.classList.contains("intro") && I.enabled !== false && !reduce) {   /* intro: arrive already grey and blurry */
+     w.style.setProperty("--gblur", (I.blur != null ? I.blur : G.blur) + "px");
+     w.classList.add("dim"); return;
+   }
+     if (D.introPlayed) return;  
     var go = function () { if (w === wrap) w.classList.add("dim"); };
     if (reduce) go(); else dimT = setTimeout(go, Math.max(0, G.dimDelay) * 1000);
   }
@@ -141,6 +148,20 @@
   D.colorGlobe = function () {                    /* lights the glow around the disc. The globe itself stays grey until hovered. */
     colored = true;
     if (wrap) wrap.classList.add("color");
+  };
+  D.clearGlobe = function () {                    /* intro finished: the Earth turns sharp and coloured */
+    var I = CF.intro || {};
+    if (I.clearAfter === false) return;           /* keep the grey, blurry look */
+   D.introPlayed = true;
+    if (!wrap) return;
+    wrap.style.setProperty("--gdimtime", Math.max(0, I.clearTime != null ? I.clearTime : 2) + "s");
+    wrap.classList.remove("dim");
+  };
+  D.globeGeometry = function () {                 /* centre and radius of the visible Earth, in screen px (the intro draws its ring round it) */
+    if (!wrap) return null;
+    var Dm = parseFloat(wrap.style.width);
+    if (!Dm) return null;
+    return { cx: parseFloat(wrap.style.left) + Dm / 2, cy: parseFloat(wrap.style.top) + Dm / 2, r: Dm / 1.4 / 2 };
   };
 
   function layout() {
@@ -198,6 +219,7 @@
     } };
     return au;
   }
+  D.audio = audio
   function unlock() {
     var a = audio(); if (!a || a.c.state === "running") return;
     a.c.resume().then(function () {               /* the first click, tap or key sounds the note under the pointer right away */
@@ -228,7 +250,7 @@
     inst.play(f, a.c.currentTime + 0.01, 0.6, gn, a.E);
   }
   function onPtr(e) {
-    if (!g || !wrap || !rev || leaving || !body.classList.contains("home")) { if (Hv.tr) { Hv.tr = 0; Hv.idx = -1; kick(); } return; }
+   if (!g || !wrap || !rev || leaving || body.classList.contains("intro") || !body.classList.contains("home")) { if (Hv.tr) { Hv.tr = 0; Hv.idx = -1; kick(); } return; }
     var r = wrap.getBoundingClientRect(), Dm = parseFloat(wrap.style.width) || r.width, sc = r.width / Dm, Sg = Dm / 1.4,
         vx = e.clientX - (r.left + r.width / 2), vy = e.clientY - (r.top + r.height / 2), Rg = Sg / 2 * sc;
     if (vx * vx + vy * vy > Rg * Rg) { if (Hv.tr) { Hv.tr = 0; Hv.idx = -1; kick(); } return; }

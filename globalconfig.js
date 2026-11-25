@@ -106,6 +106,52 @@ CONFIG.globe = {
   /* texture: "assets/ui/your-map.jpg"   <- optional: your own equirectangular map instead of the CDN one */
 };
 
+/* ---------- 3d. The intro (intro.js) ----------
+   Black screen, "Tap to begin" (browsers only allow sound after a tap), the Earth fades in blurry and grey,
+   a ring of colour bars rises from behind it one by one, clockwise, each with a sparkle note from lowest to highest.
+   When the ring is full AND the page is loaded it bursts outward into notes with an "award" sparkle,
+      When the ring is full AND the page is loaded it bursts outward into notes with an "award" sparkle,
+   the Earth sharpens and the page appears. Lengths are fractions of the Earth's radius. */
+CONFIG.intro = {
+  enabled: true,        /* false = no intro (also skipped when the visitor asks for reduced motion) */
+  gate: true,           /* "Tap to begin" screen. false = starts at once, but the sparkles are silent unless sound is already unlocked */
+  title: "DANIG",         /* the giant word on the start screen */
+  titleHue: null,         /* starting colour 0-360. null = a random colour every visit */
+  titleSpread: 90,        /* degrees of hue the gradient travels through (small = calm, 180 = rainbow-ish) */
+  titleFlow: 6,           /* s for the colours to flow once from left to right */
+  gateText: "Tap anywhere to start",
+  gateKeyText: "or press Space to start",   /* shown only on laptops and desktops (mouse + keyboard) */
+  earthFade: 3,         /* s for the black to fade away and show the Earth */
+  blur: 6,              /* px of blur on the grey Earth at the start */
+  clearTime: 2,         /* s the Earth takes to turn sharp and coloured after the burst */
+  clearAfter: true,     /* false = after the intro the Earth goes back to grey and blurry (the mouse reveals colour) */
+  startDelay: 0,      /* s from the moment the Earth begins to show until the first bar */
+  fillTime: 6,          /* s for the whole ring to fill, clockwise */
+  growTime: 0.2,        /* s one bar takes to rise */
+  holdMin: 0.2,         /* s the full ring waits before the burst (longer if the page is still loading) */
+  maxWait: 7,           /* s after page start; then the burst happens even if a file is missing */
+  bars: 48,
+  startDeg: -90,        /* first bar: -90 = top, then clockwise */
+  innerRadius: 0.94,    /* where bars begin, as a fraction of the Earth's radius (below 1 = hidden behind the Earth) */
+  minLength: 0.14, maxLength: 0.55,   /* shortest and tallest bar */
+  segHeight: 0.045, segGap: 0.02,     /* each bar is a stack of rounded dashes */
+  barFill: 0.62,        /* dash width as a share of its slot */
+  hueStart: 120, hueDir: -1,          /* first bar's hue and which way it turns (-1 = green, yellow, red, purple, blue, cyan) */
+  saturation: 90, lightness: 55,
+  glow: 0.3, glowSize: 1.8,           /* glow strength 0..1, and its width as a multiple of a dash */
+  idleWiggle: true,     /* the full ring flickers like a live spectrum while it waits */
+  burstTime: 2.8,       /* s for the notes to fly out and fade */
+  burstSpeed: 1.6,      /* how far they fly, in Earth radii */
+  burstDust: 140,       /* extra glitter */
+  noteGlyphs: 0.12,     /* share of the pieces drawn as ♪ ♫ */
+  sound: true,
+  volume: 0.5, echo: 0.3,
+  lowMidi: 60, octaves: 4, decay: 1.1,   /* fill notes: lowest note, octaves covered, ring time (s) */
+  awardNotes: 40, awardTime: 1.8, awardLowMidi: 72   /* the "award" sparkle at the burst */
+  /* scale: [0, 2, 4, 7, 9]   <- optional: defaults to CONFIG.scale, else pentatonic */
+};
+
+
 /* ---------- 3c. Stars: the light "Stardust" background (space.js) ----------
    density = stars per 10,000 px of screen (5 is about 1,000 on a 1080p screen). The stars cover the whole screen. Lower it if a device lags. */
 CONFIG.stars = {
