@@ -15,3 +15,12 @@
 - Space now starts the intro (capture-phase listener on window, blocks the global shortcut dispatcher while the gate is up)
 - Removed the focus outline around the "Tap anywhere to start" text
 - Files: intro.js, styles.css
+
+## [2026-11-25] Fix Space/Enter dead after the intro
+- Intro gate's capture-phase Space listeners now remove themselves (on key release, or at once when started by tap), so Space and Enter work again on home Start, mode picker, carousel cards and play/pause
+- Removed the redundant non-capture keydown listener
+- Files: intro.js
+
+
+## GIT COMMIT: NEW INTRO
+---------------------------------
