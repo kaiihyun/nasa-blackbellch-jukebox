@@ -145,7 +145,7 @@ CONFIG.intro = {
   clearTime: 2,         /* s the Earth takes to turn sharp and coloured after the burst */
   clearAfter: true,     /* false = after the intro the Earth goes back to grey and blurry (the mouse reveals colour) */
   startDelay: 0,      /* s from the moment the Earth begins to show until the first bar */
-  fillTime: 6,          /* s for the whole ring to fill, clockwise */
+  fillTime: 3,          /* s for the whole ring to fill, clockwise */
   growTime: 0.2,        /* s one bar takes to rise */
   holdMin: 0.2,         /* s the full ring waits before the burst (longer if the page is still loading) */
   maxWait: 7,           /* s after page start; then the burst happens even if a file is missing */

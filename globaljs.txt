@@ -1,0 +1,176 @@
+var KI = [], starts = [0], wrapK = $("kWrap");
+  PAGES.forEach(function (p) {
+    KI.push({ h: p[0] });
+    p[1].forEach(function (r) { KI.push({ a: r[0], b: r[1] }); });
+  });
+  function kRow(tb, it) {
+    var tr = document.createElement("tr"), a, b;
+    if (it.h !== undefined) {
+      a = document.createElement("th"); a.colSpan = 2; a.scope = "colgroup"; a.textContent = it.h; tr.className = "grp"; tr.appendChild(a);
+    } else {
+      a = document.createElement("td"); b = document.createElement("td"); a.innerHTML = it.a; b.textContent = it.b; tr.appendChild(a); tr.appendChild(b);
+    }
+    tb.appendChild(tr); return tr;
+  }
+  function kFill(start) {                                     /* draws one page from item `start`; returns the index where the next page begins */
+    var tb = $("kRows"), tbl = tb.parentNode, room = wrapK.clientHeight, i = start, rows = 0, tr, isRow;
+    tb.textContent = "";
+    while (i < KI.length) {
+      isRow = KI[i].h === undefined;
+      tr = kRow(tb, KI[i]); if (isRow) rows++;
+      if (tbl.offsetHeight > room && i > start && !(isRow && rows === 1)) { tb.removeChild(tr); break; }
+      i++;
+    }
+    while (i > start + 1 && KI[i - 1].h !== undefined) { tb.removeChild(tb.lastChild); i--; }   /* a group title never ends a page alone */
+    return i;
+  }
+  function kPaint(dir) {
+    var back = $("kBack"), next = $("kNext");
+    kFill(starts[kp]);
+    $("kPage").textContent = "Page " + (kp + 1) + " of " + starts.length;
+    back.disabled = kp === 0; next.disabled = kp === starts.length - 1;
+    var ae = document.activeElement;
+    if (ae && ae.disabled) (ae === back ? next : back).focus();
+    if (dir) { wrapK.classList.remove("turn-next", "turn-prev"); void wrapK.offsetWidth; wrapK.classList.add(dir > 0 ? "turn-next" : "turn-prev"); }
+  }
+  function drawKeys(keep) {                                   /* works out the pages for the space there is right now */
+    if (!sets.open) return;
+    var anchor = keep ? (starts[kp] || 0) : 0, s = 0, end, i;
+    starts = [0];
+    for (;;) { end = kFill(s); if (end >= KI.length) break; starts.push(end); s = end; }
+    kp = 0; for (i = 0; i < starts.length; i++) if (starts[i] <= anchor) kp = i;
+    kPaint(0);
+  }
+  $("kBack").addEventListener("click", function () { if (kp > 0) { kp--; kPaint(-1); } });
+  $("kNext").addEventListener("click", function () { if (kp < starts.length - 1) { kp++; kPaint(1); } });
+  if (window.ResizeObserver && wrapK) new ResizeObserver(function () { drawKeys(true); }).observe(wrapK);
+  window.addEventListener("resize", function () { drawKeys(true); });
+
+  /* ---------- 4a. Main page: loading screen (before the keyboard code, so it can lock the keys first) ---------- */
+  if (MAIN) (function loader() {
+    var el = document.createElement("div");
+    el.className = "loader done"; el.hidden = true; el.setAttribute("aria-busy", "false");
+    el.innerHTML =
+      '<div class="lstage" aria-hidden="true"><svg width="0" height="0" style="position:absolute"><defs>' +
+      '<symbol id="dn1" viewBox="0 0 24 24"><ellipse cx="8" cy="18" rx="3.8" ry="2.8" transform="rotate(-20 8 18)"/><rect x="10.6" y="3" width="1.8" height="15"/><path d="M12.4 3c1 3.6 5.6 4.2 5.6 9.2-1.1-2.6-3.1-3.3-5.6-3.8z"/></symbol>' +
+      '<symbol id="dn2" viewBox="0 0 24 24"><ellipse cx="6.5" cy="18" rx="3.4" ry="2.6" transform="rotate(-20 6.5 18)"/><rect x="8.7" y="5.5" width="1.7" height="12.5"/><ellipse cx="17" cy="16" rx="3.4" ry="2.6" transform="rotate(-20 17 16)"/><rect x="19.2" y="3" width="1.7" height="13"/><path d="M8.7 5.5l12.2-2.5v4L8.7 9.5z"/></symbol>' +
+      '</defs></svg><div class="orbit">' +
+      '<span class="lnote" style="--a:0deg"><svg><use href="#dn1"/></svg></span><span class="lnote" style="--a:90deg"><svg><use href="#dn2"/></svg></span>' +
+      '<span class="lnote" style="--a:180deg"><svg><use href="#dn1"/></svg></span><span class="lnote" style="--a:270deg"><svg><use href="#dn2"/></svg></span></div>' +
+      '<img class="llogo" src="' + D.url(D.ui("danig_logo.svg")) + '" alt=""></div>' +
+      '<div class="lbar" role="progressbar" aria-label="Loading" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i></i></div>' +
+      '<p class="lpct">0%</p><button type="button" class="btn lcancel" data-act="cancel">Cancel</button>';
+    body.appendChild(el);
+    var bar = el.querySelector(".lbar"), fill = el.querySelector(".lbar i"), pct = el.querySelector(".lpct");
+    var on = false, target = 0, shown = 0, t0 = 0, vp = 0, finishing = false, hideT = null, cancel = null, resolveDone = null, MIN_MS = 900;
+    el.querySelector(".lcancel").addEventListener("click", function () { if (cancel) cancel(); });
+    function paint() { var p = Math.round(shown * 100); fill.style.width = p + "%"; pct.textContent = p + "%"; bar.setAttribute("aria-valuenow", p); }
+    function leave(ok) {
+      on = false; el.setAttribute("aria-busy", "false"); el.classList.add("done");
+      clearTimeout(hideT); hideT = setTimeout(function () { if (!on) el.hidden = true; }, 700);
+      var r = resolveDone; resolveDone = null; cancel = null; finishing = false;
+      if (r) r(ok);
+    }
+    function tick(now) {
+      if (!on) return;
+      target = Math.max(target, Math.min(1, 0.03 + 0.97 * vp));
+      if (!finishing) target = Math.min(target, 0.96);                 /* never 100% until done() is called */
+      shown = Math.min(target, shown + Math.max(0.004, (target - shown) * 0.08));
+      paint();
+      if (finishing && shown >= 1 && now - t0 >= MIN_MS) { shown = 1; paint(); return leave(true); }
+      requestAnimationFrame(tick);
+    }
+    /* While it is up the keyboard belongs to the loader: Esc cancels, everything else is ignored. */
+    document.addEventListener("keydown", function (e) {
+      if (!on) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || /^F\d+$/.test(e.key)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (e.key === "Escape" && cancel) cancel();
+    }, true);
+    window.DanigLoader = {
+      show: function (onCancel) {
+        clearTimeout(hideT);
+        on = true; finishing = false; vp = 0; target = 0.03; shown = 0; t0 = performance.now(); cancel = onCancel || null;
+        el.hidden = false; void el.offsetWidth; el.classList.remove("done"); el.setAttribute("aria-busy", "true");
+        paint(); requestAnimationFrame(tick);
+      },
+      progress: function (p) { vp = Math.max(vp, Math.min(1, p)); },
+      done: function () { return new Promise(function (ok) { if (!on) { ok(false); return; } vp = 1; finishing = true; resolveDone = ok; }); },
+      fail: function () { if (on) leave(false); },
+      active: function () { return on; }
+    };
+  })();
+
+  /* ---------- 4b. Main page: the Sweep player lives in sweepmode/sweep.html, opened on top of the carousel ---------- */
+  if (MAIN) (function bridge() {
+    var C = window.CONFIG, EJP = (window.EJ && window.EJ.PRESETS) || [], DIR = "sweepmode/";
+    var FALLBACK = ["#5aa9ee", "#6366f1", "#a855f7"], UP = "__upload__";
+    function base(u) { return String(u || "").split("/").pop(); }
+
+    /* carousel entries: a track reuses the colors of the Location dataset that has the same video file */
+    EJP.forEach(function (p) {
+      var twin = C.presets.filter(function (q) { return base(q.videoUrl) && base(q.videoUrl) === base(p.video); })[0];
+      var colors = (twin && twin.theme && twin.theme.colors) || FALLBACK;
+      C.presets.push({ name: p.name, description: p.blurb || "", theme: { colors: colors, fixed: true }, thumb: p.video || "", sweep: true, trackId: p.id });
+    });
+
+    var frame = null, win = null, busy = false, shown = false;
+    var st = document.createElement("style");
+    st.textContent = "#jukeboxFrame{position:fixed;inset:0;width:100%;height:100dvh;border:0;z-index:50;background:#02050b;visibility:hidden;opacity:0;transition:opacity .35s ease}" +
+      "#jukeboxFrame.on{visibility:visible;opacity:1}@media (prefers-reduced-motion:reduce){#jukeboxFrame{transition:none}}";
+    document.head.appendChild(st);
+
+    /* while the player is loading or open, the carousel underneath must not react to the keyboard */
+    document.addEventListener("keydown", function (e) {
+      if (!busy && !shown) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || /^F\d+$/.test(e.key)) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (win) win.focus();
+    }, true);
+
+    function fail(msg) {
+      var dead = !(win && win.EJ);
+      busy = false; shown = false;
+      if (frame) frame.classList.remove("on");
+      if (dead && frame) { frame.remove(); frame = null; win = null; }
+      window.focus(); $("start").focus();
+      say(msg || "The Earth Jukebox did not open. Check that the sweepmode folder sits next to index.html.");
+    }
+    function show() { shown = true; frame.classList.add("on"); win.focus(); var pl = win.document.getElementById("play"); if (pl) pl.focus(); }
+    function hide() { shown = false; busy = false; frame.classList.remove("on"); window.focus(); $("start").focus(); say("Back to the playlist. " + $("pTitle").textContent + "."); }
+    function watch() {                                       /* the jukebox adds "playing" to its body when its player opens, and removes it on Exit */
+      var b = win.document.body;
+      new MutationObserver(function () {
+        var p = b.classList.contains("playing");
+        if (p && !shown) show(); else if (!p && shown) hide();
+      }).observe(b, { attributes: true, attributeFilter: ["class"] });
+    }
+    function index(id) {                                     /* the track's place in the jukebox's own playlist, or -1 until every legend picture is read */
+      var E = win.EJ; if (!E || !E.MAPS || !E.PRESETS || !E.isReady || !E.isReady()) return -1;
+      var T = E.PRESETS.filter(function (p) { return E.MAPS[p.map]; });
+      for (var i = 0; i < T.length; i++) if (T[i].id === id) return i;
+      return -1;
+    }
+    function drive(id, t0) {                                 /* uses the jukebox's own controls: Start, the number key, Play. The upload card opens the player empty. */
+      var d = win.document, E = win.EJ, up = id === UP, i;
+      if (up) i = (E && E.isReady && E.isReady() && E.openCustom) ? 0 : -1; else i = index(id);
+      if (i < 0) { if (Date.now() - t0 > 20000) fail(); else setTimeout(function () { drive(id, t0); }, 100); return; }
+      if (d.body.classList.contains("home")) d.getElementById("homeStart").click();
+      if (up) {
+        var f = window.spotSweepFiles && window.spotSweepFiles();
+        if (!f) return fail("Upload a video and a legend first.");
+        E.openCustom(f.video, f.legend); wait(Date.now()); return;
+      }
+      d.body.dispatchEvent(new win.KeyboardEvent("keydown", { key: String(i + 1), bubbles: true }));
+      setTimeout(function () { d.getElementById("start").click(); wait(Date.now()); }, 260);
+    }
+    function wait(t0) {                                      /* the player opens only after the video is fully loaded */
+      setTimeout(function () {
+        if (shown || !busy) return;
+        var E = win && win.EJ;
+        if (E && E.loading && Date.now() - t0 < 120000) return wait(t0);
+        if (E && E.loadError) return fail(E.loadError);
+        if (Date.now() - t0 < 1500) return wait(t0);
+        hide();                                              /* cancelled with Esc */
+      }, 400);
+    }

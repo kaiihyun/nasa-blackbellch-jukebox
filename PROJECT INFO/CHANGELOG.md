@@ -37,3 +37,6 @@ CHANGELOG.md entry:
 - Major/minor UI sounds start on a different note each time (CONFIG.sfx.shifts); About, Settings and NASA SVS play a faint click; text size plays a plucked sound in 4 pitch steps
 - NASA SVS card is hidden on the mode picker, blurs in/out with the landing page, and opens with N (DANIG.keys.svs)
 - Files: globalconfig.js, sfx.js, global.js, index.html, styles-outer.css
+
+## GIT COMMIT: BUTTONS VFX
+---------------------------------

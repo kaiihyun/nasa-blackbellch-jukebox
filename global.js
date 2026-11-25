@@ -238,7 +238,7 @@
   }
   $("kBack").addEventListener("click", function () { if (kp > 0) { kp--; kPaint(-1); } });
   $("kNext").addEventListener("click", function () { if (kp < starts.length - 1) { kp++; kPaint(1); } });
-  if (window.ResizeObserver) new ResizeObserver(function () { drawKeys(true); }).observe(wrapK);
+  if (window.ResizeObserver && wrapK) new ResizeObserver(function () { drawKeys(true); }).observe(wrapK);
   window.addEventListener("resize", function () { drawKeys(true); });
 
   /* ---------- 4a. Main page: loading screen (before the keyboard code, so it can lock the keys first) ---------- */
