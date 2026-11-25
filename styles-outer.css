@@ -45,9 +45,13 @@ body.intro .introveil{display:grid}
 @keyframes titleflow{from{background-position:200% 0}to{background-position:0 0}}   /* the mirrored gradient tiles, so the loop has no seam */
 .intro-gate{position:absolute;left:0;right:0;top:60%;padding:0;border:0;outline:none;-webkit-tap-highlight-color:transparent;background:none;color:#fff;font:400 clamp(1.5rem,2.4vmin,1.25rem)/1.7 var(--font);letter-spacing:.08em;text-align:center;cursor:pointer;
   animation:gatepulse 2.2s ease-in-out infinite alternate;transition:opacity .5s;}
-.intro-gate span{display:block}
+.intro-gate span{display:block;animation:fadeblur 1.1s var(--ease) both;animation-delay:.9s}
+.intro-gate span+span{animation-delay:1.2s}   /* "or press Space to start" arrives just after */
 .intro-gate:focus,.intro-gate:focus-visible{outline:none;box-shadow:none}
-.introveil.go .intro-gate{opacity:0;animation:none;pointer-events:none}
+.introveil.go .intro-gate{pointer-events:none}
+.introveil.go .intro-gate span{animation:blurout .7s var(--ease) both;animation-delay:0s}
+@keyframes blurout{from{opacity:1;filter:blur(0);transform:none}to{opacity:0;filter:blur(14px);transform:translateY(-12px)}}
+
 @keyframes gatepulse{from{opacity:.45}to{opacity:.95}}
 .intro-spectrum{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}   /* lives inside #space, behind the globe */
 body.intro #globe{transform:none;transition:opacity 1s ease}          /* fades in place instead of rising */
@@ -138,8 +142,10 @@ body.home{touch-action:none;-webkit-user-select:none;user-select:none}
 /* ---------- NASA SVS card: a glass panel under About and Settings, exactly as wide as the two buttons together ---------- */
 .bar-end{position:relative}
 .svs{display:none;position:absolute;top:100%;left:0;right:0;margin-top:var(--s1);z-index:5;flex-direction:column;gap:var(--s1);padding:var(--s1);
-  color:#fff;text-decoration:none;text-align:left;transition:transform .3s var(--ease),border-color .3s,background .3s}
-body.home .svs,body.modes .svs{display:flex}
+   color:#fff;text-decoration:none;text-align:left;transition:transform .3s var(--ease),border-color .3s,background .3s,opacity .24s ease,filter .24s ease}
+body.home .svs{display:flex;animation:fadeblur 1.1s var(--ease) backwards}   /* landing page only; blurs in each time it shows */
+body.out .svs{opacity:0;filter:blur(10px)}                                  /* blurs out as the landing page leaves (the card is not inside .views) */
+.svs kbd{position:absolute;top:var(--s2);right:var(--s2);background:rgba(0,0,0,.55)}
 .svs:hover{transform:translateY(-4px);border-color:#fff;background:
     radial-gradient(120% 80% at 0% 0%,rgba(255,255,255,.28),transparent 55%),
     linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.04) 50%,rgba(255,255,255,.1)),

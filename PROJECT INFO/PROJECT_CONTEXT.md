@@ -14,12 +14,13 @@
 ```
 index.html          Main page: landing, mode picker, carousel, Location player, About/Settings dialogs
 styles.css          Only stylesheet (tokens, glass look, screens, coverflow, loader); shared by both modes
-globalconfig.js     DANIG.dirs (asset paths), DANIG.keys (all shortcuts), CONFIG.ui switches, CONFIG.globe, CONFIG.stars, 
+globalconfig.js     DANIG.dirs (asset paths), DANIG.keys (all shortcuts), CONFIG.ui switches, CONFIG.globe, CONFIG.stars, DANIG.keys.svs = "N"
                     CONFIG.sweepUpload,CONFIG.sweepUpload
 global.js           Shared logic: key badges, one keyboard dispatcher, About/Settings sheets, text size, glass opacity,
                     shortcut pager, loader, Sweep iframe bridge, landing/mode navigation, coverflow, dialog fit-to-screen
 intro.js            Tap-to-begin intro: Earth fades in, colour spectrum ring fills with sparkle notes, bursts when loaded 
                     (CONFIG.intro); fills in accepted formats on the Upload card
+sfx.js              Interface sounds: bright major (go) and minor (back) with a varying start note, plucked text-size sounds (4 pitches), faint click (About, Settings, NASA SVS), faint thud on empty clicks (CONFIG.sfx)
 space.js            Starfield canvas and the 3D landing-page globe (hover color circle, 3D bars, hover notes)
 server.py           Local static server plus /proxy endpoint
 locationmode/      config.js (datasets, places, gazetteer, analysis), engine.js, upload-form.js, plugins.js,
@@ -39,6 +40,7 @@ A **frontend-only app**. The backend only serves files and proxies remote media.
 **Screens**
 - Driven by `<body>` classes: `home`, `modes`, `playing`, `form`, `upload`.
 - One capture-phase keydown dispatcher in `global.js` clicks any button with `data-act="name"` when its configured key is pressed.
+- The NASA SVS card (.svs) shows on body.home only; it blurs in on entering home and blurs out via body.out.
 
 **Location mark mode** (`locationmode/engine.js`)
 - Each video frame is drawn to an analysis canvas and sampled on a grid (18×9).

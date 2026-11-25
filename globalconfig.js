@@ -29,21 +29,28 @@ window.CONFIG = window.CONFIG || {};
    (aria-keyshortcuts plus the spoken words "Shortcut: ..."). Change a value here and the screen follows.
    Values are KeyboardEvent.key names: letters (case does not matter), digits, symbols, "Enter", " " (Space),
    "Escape", "ArrowLeft", "ArrowRight". "Shift+1" means Shift held. A list gives one key per button in a row. */
-DANIG.keys = {
+
+
+ DANIG.keys = {
   /* top bar and screens */
   exit: "Escape",
   about: "A",
+  svs: "N",      
   settings: "?",
-  start: "Enter",              /* landing Start and the carousel Play */
+  start: "Enter",              
+  
+  /* landing Start and the carousel Play */
   modeLocation: "1",
   modeSweep: "2",
   prev: "ArrowLeft",
   next: "ArrowRight",
+  
   /* upload card and upload form */
   uploadVideo: "V",
   uploadLegend: "L",
   load: "Enter",
   cancel: "Escape",
+  
   /* players */
   play: " ",                   /* Space */
   soundKey: "K",
@@ -53,6 +60,7 @@ DANIG.keys = {
   scene: "U",                  /* next background texture; with Shift, the one before */
   instrumentPick: ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],   /* the instrument buttons beside the video, top to bottom */
   mute: ["Shift+1", "Shift+2", "Shift+3", "Shift+4", "Shift+5", "Shift+6", "Shift+7", "Shift+8", "Shift+9", "Shift+0"],   /* rows of "Playing now" */
+  
   /* keys that have no button */
   textSize: "T",
   silence: "S",
@@ -66,6 +74,7 @@ DANIG.keys = {
   volumeUp: "=",
   seekBack: ",",
   seekForward: "."
+
 };
 
 /* ---------- 3. Switches (developers only: nothing on screen turns these on or off) ---------- */
@@ -80,9 +89,23 @@ CONFIG.ui = {
   duckWhileSpeaking: false     /* true = lower the music while announcements are read */
 };
 
+/* ---------- 3a. Interface sounds (sfx.js): a note for every button that does something ---------- */
+CONFIG.sfx = {
+  enabled: true,
+  volume: 0.4,                  /* level of all interface sounds, 0 to 1 */
+  majorMidi: 76,                /* bright major arpeggio: Space, Enter, Play, Start, Next, cards, opening a sheet */
+  minorMidi: 69,                /* softer falling minor: Exit, Cancel, Pause, closing a sheet */
+  sizeMidi: [48, 57, 66, 76],   /* text size Normal, Large, Extra large, Largest: low to high (a plucked sound, unlike the bells) */
+  shifts: [-5, -3, 0, 2, 4],    /* the major and minor sounds start on a different note each time, picked from these semitone shifts. [0] = always the same */
+  clickVolume: 0.7,             /* the faint click of About, Settings and NASA SVS */
+  thud: true,                   /* faint dull tap when you click empty space in the Location player */
+  thudVolume: 0.35
+};
+
 /* ---------- 3b. The 3D globe: the "music disc" on the landing page (space.js) ----------
    It sits exactly over the circle of the landing page, starts grey and blurry, fades into colour, spins clockwise,
    and is removed completely when you press Start (and built again when you come back). */
+
 CONFIG.globe = {
   enabled: true,
   spin: 40,           /* seconds for one clockwise turn of the disc, 0 = no disc spin */
@@ -106,12 +129,8 @@ CONFIG.globe = {
   /* texture: "assets/ui/your-map.jpg"   <- optional: your own equirectangular map instead of the CDN one */
 };
 
-/* ---------- 3d. The intro (intro.js) ----------
-   Black screen, "Tap to begin" (browsers only allow sound after a tap), the Earth fades in blurry and grey,
-   a ring of colour bars rises from behind it one by one, clockwise, each with a sparkle note from lowest to highest.
-   When the ring is full AND the page is loaded it bursts outward into notes with an "award" sparkle,
-      When the ring is full AND the page is loaded it bursts outward into notes with an "award" sparkle,
-   the Earth sharpens and the page appears. Lengths are fractions of the Earth's radius. */
+
+/* ---------- 3d. The intro (intro.js) ----------*/
 CONFIG.intro = {
   enabled: true,        /* false = no intro (also skipped when the visitor asks for reduced motion) */
   gate: true,           /* "Tap to begin" screen. false = starts at once, but the sparkles are silent unless sound is already unlocked */
@@ -122,7 +141,7 @@ CONFIG.intro = {
   gateText: "Tap anywhere to start",
   gateKeyText: "or press Space to start",   /* shown only on laptops and desktops (mouse + keyboard) */
   earthFade: 3,         /* s for the black to fade away and show the Earth */
-  blur: 6,              /* px of blur on the grey Earth at the start */
+  blur: 2,              /* px of blur on the grey Earth at the start */
   clearTime: 2,         /* s the Earth takes to turn sharp and coloured after the burst */
   clearAfter: true,     /* false = after the intro the Earth goes back to grey and blurry (the mouse reveals colour) */
   startDelay: 0,      /* s from the moment the Earth begins to show until the first bar */

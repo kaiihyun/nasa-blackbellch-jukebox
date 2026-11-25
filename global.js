@@ -93,10 +93,10 @@
   function openDlg(d) {
     var o = d === about ? sets : about;
     if (o.open) o.close();
-    if (!d.open) { lastF = document.activeElement; d.showModal(); if (d === sets) { kp = 0; drawKeys(false); } }
+    if (!d.open) { lastF = document.activeElement; if (D.sfx) D.sfx.click(); d.showModal(); if (d === sets) { kp = 0; drawKeys(false); } }
   }
   [about, sets].forEach(function (d) {
-    d.addEventListener("close", function () { if (lastF && document.contains(lastF)) lastF.focus(); });
+    d.addEventListener("close", function () { if (D.sfx) D.sfx.back(); if (lastF && document.contains(lastF)) lastF.focus(); });
     d.addEventListener("click", function (e) { if (e.target === d) d.close(); });          /* click the dimmed area to close */
   });
   [].forEach.call(document.querySelectorAll("[data-close]"), function (b) { b.addEventListener("click", function () { b.closest("dialog").close(); }); });
@@ -110,6 +110,7 @@
     document.documentElement.style.setProperty("--fs", SIZES[i][1] + "%");
     radios.forEach(function (b, j) { b.setAttribute("aria-checked", j === i); b.tabIndex = j === i ? 0 : -1; });
     try { localStorage.setItem("danigSize", i); } catch (e) {}
+     if (!quiet && D.sfx) D.sfx.size(i);
     if (!quiet) say("Text size: " + SIZES[i][0] + ".");
     if (sets.open) drawKeys(true);
   }
@@ -169,7 +170,7 @@
   var PAGES = MAIN ? [
     ["Menu", [[both("prev", "next"), "Previous or next dataset"], [kbs(L("start")), "Start, then open the player"],
       [kbs(L("modeLocation")) + " " + kbs(L("modeSweep")), "Location mark or Sweep"], [kbs(L("uploadVideo")) + " " + kbs(L("uploadLegend")), "Upload card: video or legend"],
-      [kbs(L("about")), "About"], [kbs(L("settings")), "Setting and shortcuts"], [kbs(L("textSize")), "Change text size"], [kbs(L("colorShift")), "Earth color shift on or off"], [kbs(L("exit")), "Back one screen"]]],
+      [kbs(L("about")), "About"], [kbs(L("settings")), "Setting and shortcuts"], [kbs(L("textSize")), "Change text size"], [kbs(L("colorShift")), "Earth color shift on or off"], [kbs(L("svs")), "NASA SVS (landing page, opens a new tab)"], [kbs(L("exit")), "Back one screen"]]],
     ["Player", [[kbs(L("play")), "Play or pause"], [kbs(L("silence")), "Silence now (pause)"], [kbs(L("seekBack")) + " " + kbs(L("seekForward")), "Seek back or forward 5 seconds"],
       [kbs("&larr;", "&rarr;", "&uarr;", "&darr;"), "Move the listening spot"], [kbs(L("nextPlace")) + " / " + kbs("Shift") + "+" + kbs(L("nextPlace")), "Next or previous named place"],
       [kbs(L("restart")), "Restart from the beginning"], [kbs(L("soundKey")), "Play the sound key (pauses playback)"], [kbs(L("describe")), "Describe this moment"]]],
@@ -428,7 +429,9 @@
     if (D.is(e, "colorShift") && hb.length) { D.toggleHue(); return; }
 
     var cl = body.classList, playing = cl.contains("playing");
-    if (MAIN && cl.contains("home")) {                          /* landing: only Start is live */
+    if (MAIN && cl.contains("home")) {   
+      if (D.is(e, "svs") && $("svsCard")) { e.preventDefault(); e.stopImmediatePropagation(); $("svsCard").click(); return; }
+      /* landing: only Start is live */
       if ((D.is(e, "start") || k === " ") && tag !== "BUTTON") { e.preventDefault(); leaveHome(); }
       e.stopImmediatePropagation(); return;
     }
@@ -496,6 +499,7 @@
     }
     leaveHome = function () {                                       /* landing -> mode picker */
       if (!body.classList.contains("home")) return;
+      if (D.sfx) D.sfx.go();
       swap(function () {
         body.classList.remove("home"); body.classList.add("modes");
         $("modeLoc").focus();
@@ -503,13 +507,15 @@
       });
     };
     goHome = function () {
+      if (D.sfx) D.sfx.back();
       swap(function () {
         body.classList.remove("modes"); body.classList.add("home");
         $("homeStart").focus();
         say("DANIG. The world, through sound. Press " + L("start") + "/Space to start.");
       });
     };
-    function goModes() {                                            /* carousel -> mode picker */
+    function goModes() {       
+     if (D.sfx) D.sfx.back();                                     /* carousel -> mode picker */
       swap(function () {
         body.classList.add("modes");
         $("modeLoc").focus();
@@ -517,6 +523,7 @@
       });
     }
     chooseMode = function (m) {
+      if (D.sfx) D.sfx.go();
       swap(function () {
         if (window.spotSetMode) window.spotSetMode(m);
         body.classList.remove("modes");

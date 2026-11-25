@@ -24,3 +24,16 @@
 
 ## GIT COMMIT: NEW INTRO
 ---------------------------------
+
+CHANGELOG.md entry:
+## [2026-11-25] Blur-in for the start text, interface sounds
+- "Tap anywhere to start" and "or press Space to start" now blur in like the other texts (fadeblur on the gate spans)
+- New sfx.js: bright major sound for actions (Space, Enter, Play, Start, Next, cards, opening sheets), softer minor for Exit, Cancel, Pause and closing sheets, one rising bell per text size, a faint thud for clicks on empty space in the Location player. Instrument buttons are skipped
+- New CONFIG.sfx in globalconfig.js
+- Files: sfx.js, globalconfig.js, index.html, global.js, styles-outer.css
+
+## [2026-11-25] Gate blur-out, varied UI sounds, SVS on landing only with N shortcut
+- Intro gate texts now blur out when started
+- Major/minor UI sounds start on a different note each time (CONFIG.sfx.shifts); About, Settings and NASA SVS play a faint click; text size plays a plucked sound in 4 pitch steps
+- NASA SVS card is hidden on the mode picker, blurs in/out with the landing page, and opens with N (DANIG.keys.svs)
+- Files: globalconfig.js, sfx.js, global.js, index.html, styles-outer.css
