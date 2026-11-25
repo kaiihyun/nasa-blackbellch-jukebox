@@ -40,3 +40,9 @@ CHANGELOG.md entry:
 
 ## GIT COMMIT: BUTTONS VFX
 ---------------------------------
+
+
+## [2026-11-26] Fixed Broken Play UI of SWEEP listening mode
+- disconnected stylesheet from sweep.html
+- using another localhost such as localhost:8001
+- to run, command prompt in terminal python -m http.server 8001
